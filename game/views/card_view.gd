@@ -13,6 +13,7 @@ var power_after := 0.0
 var melt_line := ""
 var stamp_dir := 0
 var stamp_p := 0.0
+var locked := false   # M05: target slot holds a cursed relic — can't equip
 
 
 func show_item(it: Dictionary, rows_: Array, rname: String, pb: float, pa: float, melt: String) -> void:
@@ -48,6 +49,10 @@ func _draw() -> void:
 	if rr > 0:   # rarity wash over the engraving area
 		draw_rect(Rect2(r.position + Vector2(8, 8), Vector2(SIZE.x - 16, 140)), Color(Pal.RARITY[rr], 0.18))
 	ItemArt.rarity_frame(self, r.grow(-8), rr, 1.4)
+	var cursed := bool(item.get("cursed", false))
+	if cursed:
+		draw_rect(r.grow(-3), E.CINNABAR, false, 6.0)
+		E.hatch(self, E.rect_poly(Rect2(r.position + Vector2(8, 8), Vector2(SIZE.x - 16, 140))), 0.5, 7.0, 1.0, rng, Color(E.CINNABAR, 0.5))
 	draw_rect(r.grow(-15), E.INK, false, 1.0)
 	ItemArt.draw_item(self, item["slot"], Vector2(0, -176), 48, rng, true)
 	var reg := Fonts.regular()
@@ -55,8 +60,8 @@ func _draw() -> void:
 	var x0 := r.position.x
 	draw_string(bold, Vector2(x0, -84), item["name"], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 31, Pal.RARITY_TEXT[rr])
 	var tags: Array = item.get("tags", [])
-	var sub := rarity_name + (" · " + String(item["type"]).to_lower() if item.has("type") and rr > 0 else "")
-	draw_string(bold, Vector2(x0, -60), sub, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 18, Pal.RARITY_TEXT[rr])
+	var sub := ("проклятое" if cursed else rarity_name) + (" · " + String(item["type"]).to_lower() if item.has("type") and rr > 0 else "")
+	draw_string(bold, Vector2(x0, -60), sub, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 18, E.CINNABAR if cursed else Pal.RARITY_TEXT[rr])
 	if not tags.is_empty():
 		draw_string(reg, Vector2(x0, -39), "теги: " + ", ".join(tags), HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 17, E.INK_FADED)
 	E.stroke(self, Vector2(x0 + 28, -28), Vector2(-x0 - 28, -28), 1.4, rng)
@@ -72,6 +77,10 @@ func _draw() -> void:
 			draw_string(bold, Vector2(x0 + 262, y), ("+" if d > 0 else "−") + _fmt(row[0], absf(d)), HORIZONTAL_ALIGNMENT_RIGHT, 52, 18, Color("#2E7D32") if d > 0 else E.CINNABAR)
 		y += 22.0
 	# build power: the one number that sums it up
+	if cursed:
+		draw_string(bold, Vector2(x0 + 20, r.end.y - 86), "проклятие: %s · надев, не снять" % item.get("curse", ""), HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 40, 16, E.CINNABAR)
+	if locked:
+		draw_string(bold, Vector2(x0 + 20, r.end.y - 108), "слот проклят: только продать или переплавить", HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 40, 15, E.CINNABAR)
 	if melt_line != "":   # resonance change from equipping
 		draw_string(bold, Vector2(x0 + 20, r.end.y - 66), "резонанс: " + melt_line, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 40, 16, Color("#7B1FA2"))
 	var dp := power_after - power_before

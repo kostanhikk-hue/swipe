@@ -29,11 +29,21 @@ func target_slot(item: Dictionary) -> String:
 	var s: String = item["slot"]
 	if s != "ring":
 		return s
-	if equipped["ring1"].is_empty():
-		return "ring1"
-	if equipped["ring2"].is_empty():
-		return "ring2"
+	for r in ["ring1", "ring2"]:
+		if equipped[r].is_empty():
+			return r
+	if is_locked("ring1") != is_locked("ring2"):
+		return "ring2" if is_locked("ring1") else "ring1"
 	return "ring1" if _power_of_slot_swap("ring1", {}) >= _power_of_slot_swap("ring2", {}) else "ring2"
+
+
+## M05: a slot holding a cursed relic cannot be changed.
+func is_locked(slot: String) -> bool:
+	return bool(equipped.get(slot, {}).get("cursed", false))
+
+
+func can_equip(item: Dictionary) -> bool:
+	return not is_locked(target_slot(item))
 
 
 func mult(slot: String) -> float:
@@ -46,7 +56,7 @@ static func scaled(it: Dictionary, m: float) -> Dictionary:
 		return out
 	for k in it["stats"]:
 		var v := float(it["stats"][k])
-		out[k] = v if (k == "скорость" or v < 0.0) else v * m   # sharpening never speeds up a weapon
+		out[k] = v if k == "скорость" else v * m   # sharpening never speeds up a weapon; curses grow too
 	return out
 
 

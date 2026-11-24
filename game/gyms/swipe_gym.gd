@@ -144,8 +144,10 @@ func _on_card_done() -> void:
 
 
 func _refresh_card() -> void:
+	card.locked = not loadout.can_equip(item)
+	var pa := loadout.power() if card.locked else loadout.power_if_equipped(item)
 	card.show_item(item, loadout.compare(item), Pal.RARITY_NAME[int(item["rarity"])],
-		loadout.power(), loadout.power_if_equipped(item), loadout.resonance_change(item))
+		loadout.power(), pa, "" if card.locked else loadout.resonance_change(item))
 
 
 func _next_card() -> void:
@@ -166,6 +168,11 @@ func _set_state(s: int) -> void:
 
 func _commit(dec: int, v: Vector2) -> void:
 	if dec == Swipe.MELT and tuning.melt_enabled < 0.5:
+		return
+	if dec == Swipe.EQUIP and not loadout.can_equip(item):   # M05: cursed slot
+		fx.float_text("слот проклят", card.position + Vector2(0, -260), E.CINNABAR, 34)
+		sfx.play("block", 0.6)
+		_set_state(St.RETURN)
 		return
 	decision = dec
 	vel = v
@@ -190,6 +197,7 @@ func _after_hit() -> void:
 			_set_state(St.FLY_EQUIP)
 		Swipe.SELL:
 			var price := loadout.sell(item)
+			_on_sold(price)
 			var n := clampi(price / 3, 5, 16)
 			coin_step = maxi(1, ceili(price / float(n)))
 			fx.spray_coins(card.position, hud.coin_anchor(), n, rng)
@@ -209,6 +217,10 @@ func _after_hit() -> void:
 			sfx.play("melt")
 			_shake(1.4)
 			_set_state(St.GONE)
+
+
+func _on_sold(_price: int) -> void:
+	pass
 
 
 func _on_coin() -> void:
@@ -301,7 +313,7 @@ func _update_lean() -> void:
 	card.set_stamp(dir, p)
 	var show := tuning.preview > 0.5 and p > 0.15
 	var slot := loadout.target_slot(item)
-	if show and dir == Swipe.EQUIP:
+	if show and dir == Swipe.EQUIP and loadout.can_equip(item):
 		panel.set_preview(slot, "→ " + str(item["name"]), loadout.power_if_equipped(item) - loadout.power())
 	elif show and dir == Swipe.MELT:
 		panel.set_preview(slot, "+1 заточка (+%d%%)" % roundi(float(loadout.econ["melt_bonus"]) * 100.0), loadout.power_if_melted(item) - loadout.power())

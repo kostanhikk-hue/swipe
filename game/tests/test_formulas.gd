@@ -50,3 +50,17 @@ func test_boss_every_15() -> void:
 	var b := LoopMath.boss_at(15, en, ct)
 	var n := LoopMath.enemy_at(en["bosses"][0], 15, ct)
 	assert_almost_eq(float(b["hp"]), float(n["hp"]) * float(en["boss_mult"]["hp"]), 0.01)
+
+
+func test_save_migrates_v1() -> void:
+	var d := Save._migrate({"schema": 1, "best_depth": 12})
+	assert_eq(int(d["schema"]), 2)
+	assert_eq(int(d["best_depth"]), 12)
+	assert_eq(int(d["souls"]), 0)
+
+
+func test_cursed_slot_locks() -> void:
+	var lo := Loadout.new({"sell_base": [1, 1, 1, 1], "sell_per_ilvl": 0.0, "melt_bonus": 0.1}, {})
+	lo.equip({"slot": "helm", "stats": {"броня": 10}, "cursed": true, "rarity": 2})
+	assert_false(lo.can_equip({"slot": "helm", "stats": {"броня": 99}, "rarity": 0}))
+	assert_true(lo.can_equip({"slot": "boots", "stats": {}, "rarity": 0}))

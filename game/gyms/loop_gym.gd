@@ -36,9 +36,16 @@ var shop_used := false
 var from_shop := false
 var save := {}
 var shop_overlay: Node2D
+var curses := {}
+var meta := {}
+var meta_speed := 1.0
+var haste := 1.0
+var omen := false
+var run := {"kills": 0, "bosses": 0, "coins": 0, "killer": ""}
 
 
 func _start() -> void:
+	Engine.time_scale = 1.0
 	ct = (load("res://data/tuning/m03_combat.tres") as CombatTuning).duplicate()
 	enemies = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/enemies.json"))
 	loot = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/loot.json"))
@@ -46,6 +53,19 @@ func _start() -> void:
 	spend = JSON.parse_string(FileAccess.get_file_as_string("res://data/m06/spend.json"))
 	save = Save.load_data()
 	best = int(save["best_depth"])
+	curses = JSON.parse_string(FileAccess.get_file_as_string("res://data/m05/curses.json"))
+	meta = JSON.parse_string(FileAccess.get_file_as_string("res://data/m08/meta.json"))
+	for u in meta["upgrades"]:   # M08: only speed and convenience
+		var lv := Save.upgrade_level(save, u["id"])
+		if lv <= 0:
+			continue
+		match u["id"]:
+			"speed":
+				meta_speed = float(u["levels"][lv - 1]["v"])
+			"haste":
+				haste = float(u["levels"][0]["v"])
+			"omen":
+				omen = true
 	enemy_v = EnemyView.new()
 	add_child(enemy_v)
 	move_child(enemy_v, back.get_index() + 1)
@@ -65,6 +85,7 @@ func _start() -> void:
 	move_child(shop_overlay, fx.get_index())
 	shop_overlay.draw.connect(_draw_shop_overlay)
 	tpanel.bind(ct, "M03")
+	tuning.rise_time /= haste if haste > 1.0 else 1.0
 	loadout = Loadout.new(loadout.econ, {}, ct)   # the run starts naked (decision #27)
 	panel.loadout = loadout
 	panel.queue_redraw()
@@ -129,6 +150,10 @@ func _spawn_enemy() -> void:
 	hud.enemy_hp_max = cur_enemy["max_hp"]
 	_sync_hud()
 	log_v.add("— глубина %d: %s" % [depth, d["name"]], E.CINNABAR if is_boss else E.INK_FADED)
+	var every := int(enemies["boss_every"])
+	if omen and not is_boss and every - depth % every <= 3:
+		var nb: Dictionary = enemies["bosses"][(depth / every) % (enemies["bosses"] as Array).size()]
+		log_v.add("предзнаменование: %s — %s" % [nb["name"], nb["special"]], Pal.RARITY_TEXT[3])
 	if is_boss:
 		fx.float_text("БОСС", Vector2(640, 330), E.CINNABAR, 96)
 		_shake(1.5)
@@ -165,7 +190,8 @@ func _process(delta: float) -> void:
 				phase = "fight"
 				ph_t = 0.0
 		"fight":
-			for ev in combat.advance(delta * ct.fight_speed):
+			var tut := haste if depth <= ct.tutorial_depth else 1.0
+			for ev in combat.advance(delta * ct.fight_speed * meta_speed * tut):
 				_on_event(ev)
 			if phase == "fight":
 				hero_hp = combat.f["hero"]["hp"]
@@ -262,6 +288,10 @@ func _win() -> void:
 	var greed := float(_hero_stats().get("алчность", 0.0))
 	var c := roundi((rng.randi_range(int(cr[0]), int(cr[1])) + depth) * (1.0 + greed / 100.0) * (float(rw["coins_mult"]) if is_boss else 1.0))
 	loadout.coins += c
+	run["coins"] += c
+	run["kills"] += 1
+	if is_boss:
+		run["bosses"] += 1
 	coin_step = maxi(1, ceili(c / 6.0))
 	fx.spray_coins(ENEMY_C, hud.coin_anchor(), 6, rng)
 	log_v.add("победа за %.1f с · +%d монет" % [combat.time, c], E.INK)
@@ -279,16 +309,34 @@ func _win() -> void:
 func _lose(title: String) -> void:
 	hero_hp = 0.0
 	_sync_hud()
-	hud.banner = "%s\nглубина %d · рекорд %d · R — новый забег" % [title, depth, maxi(best, int(save["best_depth"]))]
+	run["killer"] = String(enemy_def.get("name", ""))
+	var souls := floori(float(run["coins"]) * float(meta["souls_share"]))
+	save["souls"] = int(save["souls"]) + souls
+	save["runs"] = int(save["runs"]) + 1
+	var record := depth > int(save["best_depth"])
+	var best_it := ""
+	var best_r := -1
+	for s in Loadout.SLOTS:
+		var it: Dictionary = loadout.equipped[s]
+		if not it.is_empty() and int(it["rarity"]) > best_r:
+			best_r = int(it["rarity"])
+			best_it = it["name"]
+	hud.enemy_name = ""
+	hud.enemy_note = ""
+	hud.banner = "%s\nглубина %d%s · рекорд %d\nубито врагов %d · боссов %d · заработано монет %d\nполучено душ +%d (всего %d)\nлучший предмет: %s · убийца: %s" % [title, depth,
+		" — НОВЫЙ РЕКОРД" if record else "", maxi(depth, int(save["best_depth"])), run["kills"], run["bosses"], run["coins"],
+		souls, int(save["souls"]), best_it if best_it != "" else "—", String(run["killer"]).to_lower()]
 	hud.queue_redraw()
 	log_v.add(title.to_lower(), E.CINNABAR)
 	sfx.play("death")
 	_shake(2.0)
-	hud.actions = []
-	if depth > int(save["best_depth"]):
+	if record:
 		save["best_depth"] = depth
-		Save.store(save)
+	Save.store(save)
 	phase = "dead"
+	hud.actions = [{"key": "R", "label": "новый забег", "cost": 0, "ok": true, "do": "restart"},
+		{"key": "M", "label": "в меню", "cost": 0, "ok": true, "do": "menu"}]
+	hud.queue_redraw()
 
 
 func _on_card_done() -> void:
@@ -316,7 +364,10 @@ func _next_card() -> void:
 func _pick_item() -> Dictionary:
 	if from_shop:
 		return item
-	return ItemGen.roll(depth, rng, loot, affixes, drop_min_rarity)
+	var it := ItemGen.roll(depth, rng, loot, affixes, drop_min_rarity)
+	if "--cursed" in OS.get_cmdline_user_args():   # debug: every drop is a cursed relic
+		return ItemGen.curse(it, depth, rng, curses)
+	return ItemGen.maybe_curse(it, depth, rng, curses, drop_min_rarity >= 2)
 
 
 # ------------------------------------------------------------- M06 spends
@@ -346,6 +397,12 @@ func _do_action(what: String) -> void:
 			sfx.play("block", 0.6, -6.0)
 			return
 	match what:
+		"restart":
+			get_tree().reload_current_scene()
+			return
+		"menu":
+			get_tree().change_scene_to_file("res://scenes/ui/menu.tscn")
+			return
 		"heal":
 			loadout.coins -= Formulas.heal_cost(depth, spend["heal"])
 			var add := _hero_max() * float(spend["heal"]["pct"])
@@ -455,8 +512,12 @@ func _draw_shop_overlay() -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventKey and e.pressed and not e.echo and phase in ["drop", "shop"]:
-		var map := {KEY_H: "heal", KEY_E: "reroll", KEY_U: "sharpen", KEY_SPACE: "leave"}
+	if e is InputEventKey and e.pressed and not e.echo and e.physical_keycode == KEY_ESCAPE:
+		Engine.time_scale = 1.0
+		get_tree().change_scene_to_file("res://scenes/ui/menu.tscn")
+		return
+	if e is InputEventKey and e.pressed and not e.echo and phase in ["drop", "shop", "dead"]:
+		var map := {KEY_H: "heal", KEY_E: "reroll", KEY_U: "sharpen", KEY_SPACE: "leave", KEY_M: "menu", KEY_R: "restart"}
 		if map.has(e.physical_keycode):
 			for a in hud.actions:
 				if a["do"] == map[e.physical_keycode]:
@@ -476,3 +537,7 @@ func _unhandled_input(e: InputEvent) -> void:
 					return
 	super._unhandled_input(e)
 
+
+
+func _on_sold(price: int) -> void:
+	run["coins"] += price

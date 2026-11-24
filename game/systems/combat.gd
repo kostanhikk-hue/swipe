@@ -55,7 +55,13 @@ func advance(dt: float) -> Array:
 		for side in ["hero", "enemy"]:   # hero first on ties: deterministic
 			var a: Dictionary = f[side]
 			var rg := float(a.get("regen", 0.0))
-			if rg > 0.0 and a["hp"] < a["max_hp"]:
+			if rg < 0.0:   # M05 curse: bleeding
+				a["hp"] = maxf(0.0, a["hp"] + rg * h)
+				if a["hp"] <= 0.0 and not over:
+					over = true
+					winner = "enemy" if side == "hero" else "hero"
+					out.append({"t": time, "kind": "death", "src": side, "amount": 0})
+			elif rg > 0.0 and a["hp"] < a["max_hp"]:
 				var add := minf(a["max_hp"] - a["hp"], rg * h)
 				a["hp"] += add
 				a["regen_acc"] += add

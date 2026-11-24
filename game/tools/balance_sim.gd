@@ -22,6 +22,7 @@ func _initialize() -> void:
 	var loot: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/loot.json"))
 	var aff: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m02/affixes.json"))
 	var res_runs := 0
+	var curses: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m05/curses.json"))
 	var spend: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m06/spend.json"))
 	var boss_pass := {15: 0, 30: 0, 45: 0}
 	var boss_seen := {15: 0, 30: 0, 45: 0}
@@ -76,8 +77,8 @@ func _initialize() -> void:
 				if hp < maxhp * 0.5 and lo.coins >= hc:
 					lo.coins -= hc
 					hp = minf(maxhp, hp + maxhp * float(spend["heal"]["pct"]))
-			var it := ItemGen.roll(depth, rng, loot, aff, int(rw["min_rarity"]) if boss else 0)
-			if lo.power_if_equipped(it) > lo.power():
+			var it := ItemGen.maybe_curse(ItemGen.roll(depth, rng, loot, aff, int(rw["min_rarity"]) if boss else 0), depth, rng, curses, boss)
+			if lo.can_equip(it) and lo.power_if_equipped(it) > lo.power():
 				lo.equip(it)
 			elif policy == "melt":
 				lo.melt(it)

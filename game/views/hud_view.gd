@@ -79,13 +79,15 @@ func _draw() -> void:
 			if int(act["cost"]) > 0:
 				draw_string(reg, r.position + Vector2(0, 46), "%d монет" % int(act["cost"]), HORIZONTAL_ALIGNMENT_CENTER, w, 17, Pal.stat("алчность") if ok else E.INK_FADED)
 	if banner != "":
-		draw_rect(Rect2(340, 300, 600, 120), Color(E.PAPER_LIGHT, 0.95))
-		draw_rect(Rect2(340, 300, 600, 120), E.INK, false, 4.0)
-		draw_rect(Rect2(348, 308, 584, 104), E.INK, false, 1.2)
 		var parts := banner.split("\n")
-		draw_string(bold, Vector2(340, 352), parts[0], HORIZONTAL_ALIGNMENT_CENTER, 600, 40, E.CINNABAR)
-		if parts.size() > 1:
-			draw_string(reg, Vector2(340, 394), parts[1], HORIZONTAL_ALIGNMENT_CENTER, 600, 24, E.INK)
+		var h := 70.0 + 34.0 * (parts.size() - 1)
+		var box := Rect2(330, 360 - h / 2.0, 620, h)
+		draw_rect(box, Color(E.PAPER_LIGHT, 0.96))
+		draw_rect(box, E.INK, false, 4.0)
+		draw_rect(box.grow(-8), E.INK, false, 1.2)
+		draw_string(bold, Vector2(330, box.position.y + 50), parts[0], HORIZONTAL_ALIGNMENT_CENTER, 620, 40, E.CINNABAR)
+		for i in range(1, parts.size()):
+			draw_string(bold if i == 1 else reg, Vector2(330, box.position.y + 50 + 34 * i), parts[i], HORIZONTAL_ALIGNMENT_CENTER, 620, 22, E.INK)
 	if not show_hints:
 		return
 	draw_string(bold, Vector2(300, 668), "← продать  A", HORIZONTAL_ALIGNMENT_LEFT, 260, 25, E.INK)

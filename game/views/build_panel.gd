@@ -59,6 +59,8 @@ func _draw() -> void:
 		draw_set_transform(cell.get_center() * (1.0 - k), 0.0, Vector2.ONE * k)
 		draw_rect(cell, E.PAPER_LIGHT)
 		ItemArt.rarity_frame(self, cell, r)
+		if bool(it.get("cursed", false)):
+			draw_rect(cell.grow(2), E.CINNABAR, false, 3.0)
 		if not it.is_empty():
 			ItemArt.draw_item(self, s, cell.get_center(), 11, rng)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

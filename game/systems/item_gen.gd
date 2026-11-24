@@ -70,3 +70,30 @@ static func _rarity(depth: int, rng: RandomNumberGenerator, d: Dictionary) -> in
 		if p <= 0.0 and w[i] > 0.0:
 			return i
 	return 0
+
+
+## M05: maybe turn the item into a cursed relic: positives ×boost, one curse (negative stat), rarity ≥ min.
+static func maybe_curse(it: Dictionary, depth: int, rng: RandomNumberGenerator, c: Dictionary, boss := false) -> Dictionary:
+	var chance := float(c["boss_chance"]) if boss else (float(c["chance"]) if depth >= int(c["min_depth"]) else 0.0)
+	if rng.randf() >= chance:
+		return it
+	return curse(it, depth, rng, c)
+
+
+static func curse(it: Dictionary, depth: int, rng: RandomNumberGenerator, c: Dictionary) -> Dictionary:
+	var out := it.duplicate(true)
+	out["rarity"] = maxi(int(out["rarity"]), int(c["min_rarity"]))
+	for k in out["stats"]:
+		var v := float(out["stats"][k])
+		if v > 0.0 and k != "скорость":
+			out["stats"][k] = snappedf(v * float(c["boost"]), 0.1) if k == "регенерация" else roundf(v * float(c["boost"]))
+	var cs: Array = c["curses"]
+	var cu: Dictionary = cs[rng.randi() % cs.size()]
+	var g := 1.0 + float(c["flat_growth"]) * (depth - 1)
+	var cv := float(cu["v"]) * (g if cu["stat"] in ["броня", "урон", "жизнь", "регенерация"] else 1.0)
+	cv = snappedf(cv, 0.1) if cu["stat"] == "регенерация" else roundf(cv)
+	out["stats"][cu["stat"]] = float(out["stats"].get(cu["stat"], 0.0)) + cv
+	out["cursed"] = true
+	out["curse"] = cu["name"]
+	out["name"] = String(out["name"]) + " (проклятое)" if false else out["name"]
+	return out
