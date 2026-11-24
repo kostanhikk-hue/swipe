@@ -37,11 +37,11 @@ files: TECH.md
 
 ## Phase 4 — Environment
 files: ENV.md
-- [ ] research of the best engine setup done — check: test -s .studioigor/research/environment.md
-- [ ] full setup installed: engine, CLI, plugin/skills, MCP, tests, linter, export — check: python3 {skill}/scripts/envcheck.py --engine {engine}
-- [ ] editor MCP connected: `claude mcp list` ✔ and a real tool call succeeded — check: manual
-- [ ] hello project: TEST and CAPTURE pass (studio.py verify) — check: grep -q "^VERIFIED: yes" .studioigor/ENV.md
-- [ ] user saw the project running on their machine — check: user
+- [x] research of the best engine setup done — check: test -s .studioigor/research/environment.md
+- [ ] full setup installed: engine, CLI, plugin/skills, MCP, tests, linter, export — check: python3 {skill}/scripts/envcheck.py --engine {engine} SKIP: envcheck ждёт Godot+MCP на Windows-хосте; полный набор агента стоит в Linux-VM (Godot 4.6.2, GUT, gdtoolkit, Xvfb), Windows — Godot пользователя
+- [ ] editor MCP connected: `claude mcp list` ✔ and a real tool call succeeded — check: manual SKIP: нет Claude Code на Windows в этой сессии; подключить godot-ai при переезде в Claude Code на ПК
+- [x] hello project: TEST and CAPTURE pass (studio.py verify) — check: grep -q "^VERIFIED: yes" .studioigor/ENV.md
+- [ ] user saw the project running on their machine — check: user SKIP: ждём пользователя: обещал запустить play.bat позже
 
 ## Phase 5 — Assets and look-dev
 files: ASSETS.md
