@@ -25,7 +25,7 @@
 | музыка | CC0/CC-BY эмбиент или пользователь | решить к слайсу | план |
 
 ## Conventions
-Экран 1280×720, stretch canvas_items. Рисунки-замены: PNG, game/art/<категория>/<id>.png, id = id в data/. Цвета только из палитры ART_BIBLE. Процедурные заглушки — scripts/engrave.gd.
+Экран 1280×720, stretch canvas_items. Рисунки-замены: PNG, game/art/enemies/guardian.png (папка = категория, имя = id из data/). Цвета только из палитры ART_BIBLE. Процедурные заглушки — scripts/engrave.gd.
 
 ## Requests to the user
 - none
