@@ -1,0 +1,29 @@
+{
+  "rarity_names": ["обычное", "магическое", "редкое", "легендарное"],
+  "start": {
+    "weapon": {"id": "w0", "slot": "weapon", "name": "Ржавый палаш", "rarity": 0, "ilvl": 1, "tags": ["сталь"], "stats": {"урон": 18, "скорость": 1.0}},
+    "shield": {"id": "s0", "slot": "shield", "name": "Доска с ремнём", "rarity": 0, "ilvl": 1, "tags": [], "stats": {"блок": 6}},
+    "helm": {"id": "h0", "slot": "helm", "name": "Шлем пилигрима", "rarity": 1, "ilvl": 2, "tags": ["вера"], "stats": {"броня": 8, "жизнь": 10}},
+    "armor": {"id": "a0", "slot": "armor", "name": "Стёганка", "rarity": 0, "ilvl": 1, "tags": [], "stats": {"броня": 12}},
+    "gloves": {"id": "g0", "slot": "gloves", "name": "Перчатки палача", "rarity": 1, "ilvl": 2, "tags": ["кровь"], "stats": {"урон": 3, "крит": 2}},
+    "boots": {"id": "b0", "slot": "boots", "name": "Сапоги странника", "rarity": 0, "ilvl": 1, "tags": [], "stats": {"броня": 3, "скорость": 0.05}},
+    "belt": {"id": "l0", "slot": "belt", "name": "Пояс сборщика", "rarity": 0, "ilvl": 1, "tags": [], "stats": {"жизнь": 15}},
+    "amulet": {"id": "m0", "slot": "amulet", "name": "Медный образок", "rarity": 0, "ilvl": 1, "tags": ["вера"], "stats": {"жизнь": 8}},
+    "ring1": {"id": "r0", "slot": "ring", "name": "Медное кольцо", "rarity": 0, "ilvl": 1, "tags": [], "stats": {"крит": 1}},
+    "ring2": {"id": "r1", "slot": "ring", "name": "Кольцо пепла", "rarity": 1, "ilvl": 2, "tags": ["пепел"], "stats": {"урон": 2, "крит": 2}}
+  },
+  "deck": [
+    {"id": "d1", "slot": "weapon", "name": "Клинок вдовы", "rarity": 2, "ilvl": 4, "tags": ["кровь", "ночь"], "stats": {"урон": 31, "скорость": 0.9, "крит": 9, "вампиризм": 3}},
+    {"id": "d2", "slot": "helm", "name": "Гнилой капюшон", "rarity": 0, "ilvl": 2, "tags": [], "stats": {"броня": 4}},
+    {"id": "d3", "slot": "armor", "name": "Саван могильщика", "rarity": 3, "ilvl": 6, "tags": ["ночь", "смерть"], "stats": {"броня": 30, "жизнь": 40, "вампиризм": 4}},
+    {"id": "d4", "slot": "ring", "name": "Перстень ростовщика", "rarity": 1, "ilvl": 3, "tags": ["золото"], "stats": {"крит": 4}},
+    {"id": "d5", "slot": "boots", "name": "Поножи висельника", "rarity": 2, "ilvl": 4, "tags": ["смерть"], "stats": {"скорость": 0.15, "броня": 2}},
+    {"id": "d6", "slot": "weapon", "name": "Молот звонаря", "rarity": 1, "ilvl": 3, "tags": ["вера"], "stats": {"урон": 40, "скорость": 0.6}},
+    {"id": "d7", "slot": "shield", "name": "Щит обета", "rarity": 1, "ilvl": 3, "tags": ["вера"], "stats": {"блок": 14, "броня": 5}},
+    {"id": "d8", "slot": "amulet", "name": "Амулет вдовы", "rarity": 3, "ilvl": 6, "tags": ["кровь"], "stats": {"урон": 8, "крит": 6, "вампиризм": 5}},
+    {"id": "d9", "slot": "gloves", "name": "Рукавицы кожевника", "rarity": 0, "ilvl": 2, "tags": [], "stats": {"броня": 4}},
+    {"id": "d10", "slot": "belt", "name": "Пояс с бубенцами", "rarity": 2, "ilvl": 4, "tags": ["пепел"], "stats": {"жизнь": 30, "скорость": 0.05}},
+    {"id": "d11", "slot": "ring", "name": "Кольцо-коготь", "rarity": 2, "ilvl": 5, "tags": ["кровь"], "stats": {"урон": 6, "крит": 5}},
+    {"id": "d12", "slot": "helm", "name": "Корона из рёбер", "rarity": 3, "ilvl": 7, "tags": ["смерть"], "stats": {"броня": 14, "жизнь": 25, "крит": 4}}
+  ]
+}

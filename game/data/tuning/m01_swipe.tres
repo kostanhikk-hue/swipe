@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="SwipeTuning" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://systems/swipe_tuning.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+threshold_x = 180.0
+threshold_up = 160.0
+fling_speed = 900.0
+max_tilt_deg = 12.0
+return_time = 0.18
+exit_speed_min = 2400.0
+hitstop_ms = 60.0
+shake_px = 9.0
+shake_ms = 180.0
+punch_scale = 1.2
+rise_time = 0.28
+equip_fly_time = 0.22
+preview = 1.0
+melt_enabled = 1.0
