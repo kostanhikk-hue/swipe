@@ -3,10 +3,16 @@ class_name ItemGen
 ## (one per stat) + 0–2 tags. Flat stats grow +8%/depth, percent stats +3%/depth.
 
 
-static func roll(depth: int, rng: RandomNumberGenerator, loot: Dictionary, aff: Dictionary) -> Dictionary:
+## min_rarity: shops and bosses guarantee quality; force_type/force_rarity: reroll keeps the item kind.
+static func roll(depth: int, rng: RandomNumberGenerator, loot: Dictionary, aff: Dictionary, min_rarity := 0,
+		force_type := "", force_rarity := -1) -> Dictionary:
 	var types: Array = loot["types"]
 	var base: Dictionary = types[rng.randi() % types.size()]
-	var r := _rarity(depth, rng, loot)
+	if force_type != "":
+		for ty in types:
+			if ty["name"] == force_type:
+				base = ty
+	var r := maxi(min_rarity, _rarity(depth, rng, loot)) if force_rarity < 0 else force_rarity
 	var pct: Array = aff["pct_stats"]
 	var flat_k := 1.0 + float(aff["flat_growth"]) * (depth - 1)
 	var pct_k := 1.0 + float(aff["pct_growth"]) * (depth - 1)

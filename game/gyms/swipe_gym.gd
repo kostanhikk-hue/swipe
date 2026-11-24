@@ -143,10 +143,14 @@ func _on_card_done() -> void:
 	_next_card()
 
 
-func _next_card() -> void:
-	item = _pick_item()
+func _refresh_card() -> void:
 	card.show_item(item, loadout.compare(item), Pal.RARITY_NAME[int(item["rarity"])],
 		loadout.power(), loadout.power_if_equipped(item), loadout.resonance_change(item))
+
+
+func _next_card() -> void:
+	item = _pick_item()
+	_refresh_card()
 	card.visible = true
 	card.position = rise_from
 	card.scale = Vector2.ONE * 0.25

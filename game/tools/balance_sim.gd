@@ -22,6 +22,9 @@ func _initialize() -> void:
 	var loot: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/loot.json"))
 	var aff: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m02/affixes.json"))
 	var res_runs := 0
+	var spend: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m06/spend.json"))
+	var boss_pass := {15: 0, 30: 0, 45: 0}
+	var boss_seen := {15: 0, 30: 0, 45: 0}
 	var deaths := []
 	var tutorial_deaths := 0
 	var legend_at := {10: 0, 20: 0}
@@ -47,9 +50,14 @@ func _initialize() -> void:
 				hp = maxhp
 			var types: Array = enemies["types"]
 			var d: Dictionary = types[rng.randi() % types.size()]
-			var e := LoopMath.enemy_at(d, depth, ct)
+			var boss := LoopMath.is_boss(depth, enemies)
+			var e := LoopMath.boss_at(depth, enemies, ct) if boss else LoopMath.enemy_at(d, depth, ct)
+			if boss and depth in boss_seen:
+				boss_seen[depth] += 1
 			var c := Combat.new(Combat.hero_from(stats, minf(hp, maxhp), ct), e, ct, r * 1000 + depth)
-			c.advance(120.0)
+			if boss:
+				c.limit = ct.time_limit * ct.boss_time_mult
+			c.advance(200.0)
 			secs += c.time + 4.0   # + rise, death, swipe
 			var b := depth / 5 * 5
 			times[b] = times.get(b, []) + [c.time]
@@ -57,8 +65,18 @@ func _initialize() -> void:
 				if depth <= ct.tutorial_depth:
 					tutorial_deaths += 1
 				break
-			hp = minf(maxhp, float(c.f["hero"]["hp"]) + maxhp * ct.heal_after_win)
-			var it := ItemGen.roll(depth, rng, loot, aff)
+			if boss and depth in boss_pass:
+				boss_pass[depth] += 1
+			var rw: Dictionary = enemies["boss_reward"]
+			hp = minf(maxhp, float(c.f["hero"]["hp"]) + maxhp * (float(rw["heal"]) if boss else ct.heal_after_win))
+			lo.coins += roundi((5 + depth) * (float(rw["coins_mult"]) if boss else 1.0))
+			# policy: heal below 50% if affordable (twice at most)
+			for _i in 2:
+				var hc := Formulas.heal_cost(depth + 1, spend["heal"])
+				if hp < maxhp * 0.5 and lo.coins >= hc:
+					lo.coins -= hc
+					hp = minf(maxhp, hp + maxhp * float(spend["heal"]["pct"]))
+			var it := ItemGen.roll(depth, rng, loot, aff, int(rw["min_rarity"]) if boss else 0)
 			if lo.power_if_equipped(it) > lo.power():
 				lo.equip(it)
 			elif policy == "melt":
@@ -80,6 +98,7 @@ func _initialize() -> void:
 	print("tutorial deaths: %d · run length median %.1f min · legendaries equipped per run: at depth 10 %.2f, at 20 %.2f" % [tutorial_deaths,
 		run_secs[run_secs.size() / 2] / 60.0, legend_at[10] / maxf(1.0, reached[10]), legend_at[20] / maxf(1.0, reached[20])])
 	print("runs with an active resonance at death: %d%%" % roundi(100.0 * res_runs / runs))
+	print("boss pass rate: 15 → %d/%d, 30 → %d/%d, 45 → %d/%d" % [boss_pass[15], boss_seen[15], boss_pass[30], boss_seen[30], boss_pass[45], boss_seen[45]])
 	var keys := times.keys()
 	keys.sort()
 	var line := "fight seconds by depth: "

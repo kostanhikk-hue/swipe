@@ -12,11 +12,13 @@ var rng := RandomNumberGenerator.new()
 var time := 0.0
 var over := false
 var winner := ""
+var limit := 30.0   # seconds; bosses get longer (CombatTuning.boss_time_mult)
 var f := {}   # side -> {hp, max_hp, dmg, speed, armor, crit, block, vamp, cd}
 
 
 func _init(hero: Dictionary, enemy: Dictionary, tuning: CombatTuning, seed_value: int) -> void:
 	t = tuning
+	limit = t.time_limit
 	rng.seed = seed_value
 	f["hero"] = hero.duplicate()
 	f["enemy"] = enemy.duplicate()
@@ -64,7 +66,7 @@ func advance(dt: float) -> Array:
 			if a["cd"] <= 0.0 and not over:
 				a["cd"] += 1.0 / maxf(0.05, a["speed"])
 				_attack(side, out)
-		if not over and time >= t.time_limit:
+		if not over and time >= limit:
 			over = true
 			winner = "enemy"
 			out.append({"t": time, "kind": "timeout", "src": "enemy", "amount": 0})

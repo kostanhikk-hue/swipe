@@ -6,6 +6,7 @@ extends Resource
 @export_range(1.0, 4.0, 0.05) var crit_mult := 2.0
 @export_range(0.0, 90.0, 1.0) var block_cap := 60.0            ## % max block chance
 @export_range(5.0, 60.0, 1.0) var time_limit := 30.0           ## s; over → hero loses
+@export_range(1.0, 4.0, 0.25) var boss_time_mult := 2.0
 @export_range(10.0, 300.0, 5.0) var hero_base_hp := 100.0
 @export_range(0.0, 20.0, 0.5) var hero_base_dmg := 6.0           ## fists; weapon damage adds on top
 @export_range(0.2, 2.0, 0.05) var fist_speed := 0.9             ## attacks/s without a weapon

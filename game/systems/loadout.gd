@@ -118,7 +118,7 @@ func resonance_change(item: Dictionary) -> String:
 		if a != b and resonance["tags"].has(tg):
 			var r: Dictionary = resonance["tags"][tg]
 			var s := "%s %d: " % [tg, int(after.get(tg, 0))]
-			s += ("+%s %s" % [str(r["v"][a - 1]), r["stat"]]) if a > b else "теряется резонанс"
+			s += ("+%d %s" % [roundi(float(r["v"][a - 1])), r["stat"]]) if a > b else "теряется резонанс"
 			if s not in parts:
 				parts.append(s)
 	return " · ".join(parts)

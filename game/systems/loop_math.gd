@@ -12,3 +12,23 @@ static func enemy_at(d: Dictionary, depth: int, ct: CombatTuning) -> Dictionary:
 	return {"hp": float(d["hp"]) * mh, "max_hp": float(d["hp"]) * mh, "dmg": float(d["dmg"]) * md,
 		"speed": float(d["speed"]), "armor": float(d["armor"]) * md, "crit": float(d["crit"]),
 		"block": float(d["block"]), "vamp": float(d["vamp"])}
+
+
+static func is_boss(depth: int, enemies: Dictionary) -> bool:
+	return depth % int(enemies.get("boss_every", 15)) == 0
+
+
+## Boss of this depth: 15 → first, 30 → second, … cycling; scaled like regular enemies × boss_mult.
+static func boss_at(depth: int, enemies: Dictionary, ct: CombatTuning) -> Dictionary:
+	var bosses: Array = enemies["bosses"]
+	var i := (depth / int(enemies["boss_every"]) - 1) % bosses.size()
+	var d: Dictionary = bosses[i]
+	var e := enemy_at(d, depth, ct)
+	var m: Dictionary = enemies["boss_mult"]
+	e["hp"] *= float(m["hp"])
+	e["max_hp"] = e["hp"]
+	e["dmg"] *= float(m["dmg"])
+	e["armor"] *= float(m["armor"])
+	e["regen"] = float(d.get("regen", 0.0)) * (1.0 + ct.depth_dmg * depth)
+	e["thorns"] = float(d.get("thorns", 0.0)) * (1.0 + ct.depth_dmg * depth)
+	return e

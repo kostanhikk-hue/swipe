@@ -34,3 +34,16 @@ static func power(dps_v: float, ehp_v: float) -> float:
 ## Armor never blocks everything: damage × K / (armor + K).
 static func armor_damage(dmg: float, armor: float, k: float) -> float:
 	return dmg * k / (maxf(0.0, armor) + k)
+
+
+## M06 prices: grow with depth; reroll and sharpening also escalate per use (Slay the Spire style).
+static func heal_cost(depth: int, c: Dictionary) -> int:
+	return roundi(float(c["base"]) + float(c["per_depth"]) * depth)
+
+
+static func reroll_cost(depth: int, uses: int, c: Dictionary) -> int:
+	return roundi(float(c["base"]) + float(c["per_depth"]) * depth + float(c["per_use"]) * uses)
+
+
+static func sharpen_cost(depth: int, rank: int, c: Dictionary) -> int:
+	return roundi(float(c["base"]) + float(c["per_rank"]) * rank + float(c["per_depth"]) * depth)

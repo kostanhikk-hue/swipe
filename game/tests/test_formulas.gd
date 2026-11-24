@@ -32,3 +32,21 @@ func test_swipe_rules() -> void:
 	assert_eq(Swipe.decide(Vector2(100, 0), Vector2.ZERO, t), Swipe.NONE)
 	t.melt_enabled = 0.0
 	assert_ne(Swipe.decide(Vector2(20, -200), Vector2.ZERO, t), Swipe.MELT)
+
+
+func test_spend_prices_escalate() -> void:
+	var c := {"base": 4, "per_depth": 0.8, "per_use": 3}
+	assert_eq(Formulas.reroll_cost(10, 0, c), 12)
+	assert_eq(Formulas.reroll_cost(10, 2, c), 18)
+	assert_eq(Formulas.sharpen_cost(10, 1, {"base": 12, "per_rank": 10, "per_depth": 0.5}), 27)
+	assert_eq(Formulas.heal_cost(10, {"base": 6, "per_depth": 1.2}), 18)
+
+
+func test_boss_every_15() -> void:
+	var en: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/enemies.json"))
+	var ct := CombatTuning.new()
+	assert_true(LoopMath.is_boss(15, en))
+	assert_false(LoopMath.is_boss(14, en))
+	var b := LoopMath.boss_at(15, en, ct)
+	var n := LoopMath.enemy_at(en["bosses"][0], 15, ct)
+	assert_almost_eq(float(b["hp"]), float(n["hp"]) * float(en["boss_mult"]["hp"]), 0.01)

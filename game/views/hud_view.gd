@@ -15,6 +15,9 @@ var enemy_hp := 0.0
 var enemy_hp_max := 1.0
 var show_hints := true
 var banner := ""
+var enemy_note := ""
+var actions: Array = []        # [{key, label, cost, ok}] — M06 spends, top centre
+var action_rects: Array = []   # filled on draw, for mouse clicks
 var _coin_punch := 0.0
 
 
@@ -58,6 +61,23 @@ func _draw() -> void:
 		draw_string(bold, Vector2(390, 60), enemy_name, HORIZONTAL_ALIGNMENT_CENTER, 500, 36, E.INK)
 		_bar(Rect2(490, 74, 300, 16), enemy_hp / maxf(1.0, enemy_hp_max))
 		draw_string(reg, Vector2(490, 112), "%d / %d" % [ceili(enemy_hp), roundi(enemy_hp_max)], HORIZONTAL_ALIGNMENT_CENTER, 300, 17, E.INK)
+	if enemy_note != "":
+		draw_string_outline(bold, Vector2(380, 166), enemy_note, HORIZONTAL_ALIGNMENT_CENTER, 520, 18, 6, E.PAPER_LIGHT)
+		draw_string(bold, Vector2(380, 166), enemy_note, HORIZONTAL_ALIGNMENT_CENTER, 520, 18, E.CINNABAR)
+	action_rects.clear()
+	if enemy_name == "" and not actions.is_empty():
+		var w := 168.0
+		var x0 := 640.0 - (w + 8.0) * actions.size() / 2.0 + 4.0
+		for i in actions.size():
+			var act: Dictionary = actions[i]
+			var r := Rect2(x0 + i * (w + 8.0), 28, w, 56)
+			action_rects.append(r)
+			var ok: bool = act["ok"]
+			draw_rect(r, Color(E.PAPER_LIGHT, 0.9 if ok else 0.5))
+			draw_rect(r, E.INK if ok else E.INK_FADED, false, 2.0 if ok else 1.0)
+			draw_string(bold, r.position + Vector2(0, 24), "%s · %s" % [act["key"], act["label"]], HORIZONTAL_ALIGNMENT_CENTER, w, 19, E.INK if ok else E.INK_FADED)
+			if int(act["cost"]) > 0:
+				draw_string(reg, r.position + Vector2(0, 46), "%d монет" % int(act["cost"]), HORIZONTAL_ALIGNMENT_CENTER, w, 17, Pal.stat("алчность") if ok else E.INK_FADED)
 	if banner != "":
 		draw_rect(Rect2(340, 300, 600, 120), Color(E.PAPER_LIGHT, 0.95))
 		draw_rect(Rect2(340, 300, 600, 120), E.INK, false, 4.0)

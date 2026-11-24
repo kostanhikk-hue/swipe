@@ -7,6 +7,7 @@ const DOOR := Vector2(640, 290)
 
 var appear := 1.0   # 0 = tiny in the doorway, 1 = in front of the hero
 var shape := "hood"
+var boss := false
 var _flash := 0.0
 var _lunge := 0.0
 var _recoil := 0.0
@@ -47,6 +48,15 @@ func _draw() -> void:
 			_helm(rng)
 		_:
 			_hood(rng)
+	if boss:
+		var top := 150.0 if shape == "beast" else (95.0 if shape == "hood" else 160.0)
+		var crown := PackedVector2Array([Vector2(570, top + 40), Vector2(580, top - 20), Vector2(605, top + 15), Vector2(640, top - 40),
+			Vector2(675, top + 15), Vector2(700, top - 20), Vector2(710, top + 40)])
+		draw_colored_polygon(crown, Pal.RARITY[3])
+		E.hatch(self, crown, 0.6, 4.0, 1.0, rng)
+		E.outline(self, crown, 3.0)
+		for x in [605.0, 640.0, 675.0]:
+			draw_circle(Vector2(x, top + 25), 6.0, E.CINNABAR)
 
 
 func _body(polys: Array, rng: RandomNumberGenerator, fold := PI / 2 + 0.06) -> void:

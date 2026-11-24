@@ -106,7 +106,7 @@ func _resonance(x: float, y: float, rng: RandomNumberGenerator) -> void:
 		var col: Color = Pal.stat(r.get("stat", "")) if lv > 0 else E.INK_FADED
 		draw_string(bold if lv > 0 else reg, Vector2(x + 4, y), "%s %d/%d" % [tg, n, nxt], HORIZONTAL_ALIGNMENT_LEFT, 110, 17, E.INK if lv > 0 else E.INK_FADED)
 		if lv > 0:
-			draw_string(bold, Vector2(x + 100, y), "+%s %s" % [str(r["v"][lv - 1]), _short(r["stat"])], HORIZONTAL_ALIGNMENT_LEFT, 106, 15, col)
+			draw_string(bold, Vector2(x + 100, y), "+%d %s" % [roundi(float(r["v"][lv - 1])), _short(r["stat"])], HORIZONTAL_ALIGNMENT_LEFT, 106, 15, col)
 		y += 20
 
 
