@@ -8,6 +8,14 @@ const V := Vector2(640, 280)                        # vanishing point
 const DOOR := Rect2(565, 175, 150, 210)             # dark opening at the end of the corridor
 const SCREEN := Rect2(0, 0, 1280, 720)
 const AUTO_SWITCH := 2.5
+const RARITY := ["обычные", "магические", "редкие", "легендарные"]
+# equipped build: [slot, name, rarity 0..3]
+const BUILD := [
+	["weapon", "Клинок вдовы", 2], ["helm", "Шлем пилигрима", 1], ["armor", "Саван могильщика", 3],
+	["gloves", "Перчатки палача", 2], ["boots", "Сапоги странника", 0], ["belt", "Пояс сборщика", 0],
+	["shield", "Щит обета", 1], ["amulet", "Амулет вдовы", 3], ["ring", "Кольцо пепла", 2],
+	["ring", "Медное кольцо", 0]]
+const PANEL := Rect2(1046, 116, 206, 548)
 
 var state := "fight"
 var _t := 0.0
@@ -48,7 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func _draw() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1489
-	_clear = [_soft(Rect2(36, 40, 300, 66)), _soft(Rect2(930, 40, 314, 66))]
+	_clear = [_soft(Rect2(36, 40, 300, 66)), _soft(Rect2(930, 40, 314, 66)), _soft(PANEL.grow(8))]
 	if state == "fight":
 		_clear.append(_soft(Rect2(420, 24, 440, 76)))
 		_clear.append(_soft(Rect2(760, 160, 140, 92)))
@@ -220,6 +228,89 @@ func _draw_hud(rng: RandomNumberGenerator) -> void:
 		_text(_font_bold, "крит", Vector2(778, 238), 200, 26, E.CINNABAR, HORIZONTAL_ALIGNMENT_LEFT)
 	_text(_font_bold, "жизнь 84 / 120", Vector2(932, 66), 300, 26, E.INK, HORIZONTAL_ALIGNMENT_RIGHT)
 	_bar(Rect2(942, 78, 288, 14), 0.7, rng)
+	_draw_build(rng)
+
+
+## Equipped items, grouped by rarity (legendary first). Rarity = frame + pips, not colour;
+## cinnabar only for legendary (ART_BIBLE).
+func _draw_build(rng: RandomNumberGenerator) -> void:
+	var y := PANEL.position.y + 4
+	var x := PANEL.position.x
+	_text(_font_bold, "снаряжение", Vector2(x, y + 18), PANEL.size.x, 22, E.INK, HORIZONTAL_ALIGNMENT_CENTER)
+	y += 30
+	for r in range(3, -1, -1):
+		var items := BUILD.filter(func(it): return it[2] == r)
+		if items.is_empty():
+			continue
+		var col := E.CINNABAR if r == 3 else E.INK_FADED
+		_text(_font, RARITY[r], Vector2(x + 4, y + 14), 120, 16, col, HORIZONTAL_ALIGNMENT_LEFT)
+		E.stroke(self, Vector2(x + 96, y + 9), Vector2(PANEL.end.x - 2, y + 9), 1.0, rng, col)
+		y += 20
+		for it in items:
+			var cell := Rect2(x + 4, y, 36, 36)
+			var hot: bool = state == "drop" and it[0] == "weapon"
+			if hot:  # the slot the drop card is compared against
+				draw_colored_polygon(PackedVector2Array([Vector2(x - 14, y + 8), Vector2(x - 2, y + 18), Vector2(x - 14, y + 28)]), E.INK)
+				E.stroke(self, Vector2(x + 48, y + 23), Vector2(PANEL.end.x - 6, y + 23), 1.6, rng)
+			_rarity_frame(cell, r)
+			_icon(it[0], cell.grow(-7), rng)
+			_text(_font_bold if r >= 2 else _font, it[1], Vector2(x + 48, y + 18), 160, 17, E.INK, HORIZONTAL_ALIGNMENT_LEFT)
+			for k in r + 1:  # rarity pips
+				draw_circle(Vector2(x + 52 + k * 9, y + 29), 2.6, E.CINNABAR if r == 3 else E.INK)
+			y += 42
+
+
+func _rarity_frame(c: Rect2, r: int) -> void:
+	draw_rect(c, E.PAPER_LIGHT)
+	match r:
+		0:
+			draw_rect(c, E.INK_FADED, false, 1.0)
+		1:
+			draw_rect(c, E.INK, false, 1.2)
+			draw_rect(c.grow(-3), E.INK, false, 1.0)
+		2:
+			draw_rect(c, E.INK, false, 2.6)
+			draw_rect(c.grow(-4), E.INK, false, 1.0)
+			for k in [c.position, Vector2(c.end.x, c.position.y), c.end, Vector2(c.position.x, c.end.y)]:
+				draw_rect(Rect2(k - Vector2(3, 3), Vector2(6, 6)), E.INK)
+		3:
+			draw_rect(c, E.CINNABAR, false, 3.0)
+			draw_rect(c.grow(-4), E.INK, false, 1.2)
+			for k in [c.position, Vector2(c.end.x, c.position.y), c.end, Vector2(c.position.x, c.end.y)]:
+				draw_rect(Rect2(k - Vector2(3.5, 3.5), Vector2(7, 7)), E.CINNABAR)
+
+
+## Tiny engraved slot silhouettes (placeholders until drawings arrive).
+func _icon(slot: String, b: Rect2, rng: RandomNumberGenerator) -> void:
+	var c := b.get_center()
+	var s := b.size.x / 2.0
+	var poly := PackedVector2Array()
+	match slot:
+		"weapon":
+			poly = PackedVector2Array([c + Vector2(-s, s * 0.8), c + Vector2(-s * 0.7, s), c + Vector2(s, -s * 0.8), c + Vector2(s * 0.8, -s)])
+		"helm":
+			poly = E.ellipse(c + Vector2(0, s * 0.3), Vector2(s, s * 1.1), 16).slice(8, 16)
+			poly.append(c + Vector2(s, s * 0.3))
+		"armor":
+			poly = PackedVector2Array([c + Vector2(-s, -s), c + Vector2(s, -s), c + Vector2(s * 0.7, s), c + Vector2(-s * 0.7, s)])
+		"gloves":
+			poly = PackedVector2Array([c + Vector2(-s * 0.6, s), c + Vector2(-s * 0.6, -s), c + Vector2(s * 0.5, -s), c + Vector2(s * 0.5, 0), c + Vector2(s, -s * 0.3), c + Vector2(s, s * 0.3), c + Vector2(s * 0.5, s)])
+		"boots":
+			poly = PackedVector2Array([c + Vector2(-s * 0.5, -s), c + Vector2(s * 0.2, -s), c + Vector2(s * 0.2, s * 0.3), c + Vector2(s, s * 0.5), c + Vector2(s, s), c + Vector2(-s * 0.5, s)])
+		"belt":
+			poly = PackedVector2Array([c + Vector2(-s, -s * 0.35), c + Vector2(s, -s * 0.35), c + Vector2(s, s * 0.35), c + Vector2(-s, s * 0.35)])
+		"shield":
+			poly = PackedVector2Array([c + Vector2(-s, -s), c + Vector2(s, -s), c + Vector2(s, 0), c + Vector2(0, s), c + Vector2(-s, 0)])
+		"amulet", "ring":
+			poly = E.ellipse(c + Vector2(0, s * 0.2), Vector2(s * 0.7, s * 0.7), 16)
+	if slot == "ring":
+		E.outline(self, poly, 3.0)
+		return
+	E.hatch(self, poly, -0.8, 2.6, 0.8, rng)
+	E.outline(self, poly, 1.6)
+	if slot == "amulet":
+		E.stroke(self, c + Vector2(-s, -s), c + Vector2(0, -s * 0.5), 1.0, rng)
+		E.stroke(self, c + Vector2(s, -s), c + Vector2(0, -s * 0.5), 1.0, rng)
 
 
 func _bar(r: Rect2, fill: float, rng: RandomNumberGenerator) -> void:
