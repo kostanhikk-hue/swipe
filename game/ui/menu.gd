@@ -56,9 +56,15 @@ func _draw_overlay() -> void:
 	var bold := Fonts.bold()
 	var reg := Fonts.regular()
 	o.draw_string(bold, Vector2(300, 150), "РЕЛИКВАРИЙ", HORIZONTAL_ALIGNMENT_CENTER, 680, 92, E.INK)
-	o.draw_string(reg, Vector2(300, 196), "каждый дроп — выбор", HORIZONTAL_ALIGNMENT_CENTER, 680, 26, E.INK_FADED)
-	o.draw_string(bold, Vector2(300, 232), "рекорд глубины %d · души %d · забегов %d" % [int(save["best_depth"]), int(save["souls"]), int(save["runs"])],
-		HORIZONTAL_ALIGNMENT_CENTER, 680, 22, E.CINNABAR)
+	var sub := "рекорд глубины %d · души %d · забегов %d" % [int(save["best_depth"]), int(save["souls"]), int(save["runs"])]
+	for pass_i in 2:   # paper outline first, then ink (the doorway is dark behind)
+		var outl := pass_i == 0
+		if outl:
+			o.draw_string_outline(reg, Vector2(300, 196), "каждый дроп — выбор", HORIZONTAL_ALIGNMENT_CENTER, 680, 26, 8, E.PAPER_LIGHT)
+			o.draw_string_outline(bold, Vector2(300, 232), sub, HORIZONTAL_ALIGNMENT_CENTER, 680, 22, 8, E.PAPER_LIGHT)
+		else:
+			o.draw_string(reg, Vector2(300, 196), "каждый дроп — выбор", HORIZONTAL_ALIGNMENT_CENTER, 680, 26, E.INK)
+			o.draw_string(bold, Vector2(300, 232), sub, HORIZONTAL_ALIGNMENT_CENTER, 680, 22, E.CINNABAR)
 	for i in buttons.size():
 		var b: Dictionary = buttons[i]
 		var r: Rect2 = b["rect"]
