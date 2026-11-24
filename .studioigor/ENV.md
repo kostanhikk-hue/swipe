@@ -1,4 +1,4 @@
-# Environment — Tinder (рабочее название)
+# Environment — Реликварий (рабочее название)
 
 <!-- Phase 4 (references/environment.md). Commands verified by a real run.
 VERIFIED is switched only by `studio.py verify`. CAPTURE writes images to

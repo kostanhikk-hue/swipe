@@ -1,4 +1,4 @@
-# Assets — Tinder (рабочее название)
+# Assets — Реликварий (рабочее название)
 
 <!-- Phase 5 (references/assets.md). -->
 

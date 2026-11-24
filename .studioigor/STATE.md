@@ -1,11 +1,11 @@
-# studioigor — Tinder (рабочее название)
+# studioigor — Реликварий (рабочее название)
 
 PROJECT: Tinder (рабочее название)
 PHASE: 0 — Start
-UPDATED: 2026-11-24
+UPDATED: 2026-11-24 16:32
 
 ## Now
-Project created. Next: phase 1, the idea interview.
+фаза 2: направления стиля и референсы
 
 ## Open questions
 - none
@@ -13,3 +13,4 @@ Project created. Next: phase 1, the idea interview.
 ## Session log
 | date | phase | done | next |
 |---|---|---|---|
+| 2026-11-24 16:32 | 0 — Start | концепт «Реликварий» утверждён, фишки выбраны | фаза 2: направления стиля и референсы |

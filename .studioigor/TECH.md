@@ -1,4 +1,4 @@
-# Technology — Tinder (рабочее название)
+# Technology — Реликварий (рабочее название)
 
 <!-- Phase 3 (references/stack.md). ENGINE — one of: godot, godot-mono, unity,
 unreal, web, defold, bevy (read by studio.py and envcheck.py). DIMENSION — 2D or 3D

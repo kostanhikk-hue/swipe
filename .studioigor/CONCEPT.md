@@ -1,35 +1,46 @@
-# Concept — Tinder (рабочее название)
+# Concept — Реликварий (рабочее название)
 
 <!-- Phase 1. Brief: one line per slot. A source tag on each slot:
 [user] the user answered · [stated] was in the original phrase ·
 [implied] follows from the reference/genre · [default] the agent decided. -->
 
 ## Pitch
-<one sentence: who the player is, what they do, why it's cool>
+Бесконечный автобой-рогалик в тёмном фэнтези, где каждый дроп — свайп «надеть или продать», а вся игра — про ролл артефактов и чтение цифр.
 
 ## Slots
-- **Genre:** <genre and subgenre>
-- **Reference games:** <game — what we take; game — what we take>
-- **Player fantasy:** <who the player feels like>
-- **30-sec loop:** <an action that is enjoyable in itself>
-- **5–15 min loop:** <goal → effort → reward>
-- **Session loop:** <what grows, where the stopping point is, why come back tomorrow>
-- **Camera:** <perspective>
-- **Controls:** <keyboard+mouse / gamepad / touch>
-- **Modes:** <single-player / co-op / PvP>
-- **Story:** <is there one and what kind: a logline or "no story">
-- **Setting and tone:** <where and what mood>
-- **Progression:** <what unlocks and where the breakthroughs are>
-- **Failure:** <how you lose and what happens then>
-- **Session:** <length and shape>
-- **Scale:** <prototype / small game / big game — and what that means in numbers>
-- **Platforms (preliminary):** <where>
+- **Genre:** рогалик с автобоем, лут-билдер — [user]
+- **Reference games:** Tinder — жест свайпа; Diablo — редкости и случайные свойства; The Bazaar / Backpack Battles — автобой по экипировке; Loop Hero — смотришь бой, решаешь до него — [user]/[default]
+- **Player fantasy:** собрать идеальный билд из 10 слотов, выжав максимум из роллов — [user]
+- **30-sec loop:** враг → автобой → дроп → сравнение «было/станет» → свайп: ← продать / надеть → — [user]
+- **5–15 min loop:** монеты → реролл, заточка, лавка, лечение → босс каждый 15-й враг проверяет билд — [user]
+- **Session loop:** бесконечный забег на рекорд глубины; при смерти часть монет уходит в прокачку аккаунта (скорость боя, QoL) — [user]
+- **Camera:** 2D-интерфейс: карточка предмета по центру, герой и враг над ней, кукла с 10 слотами — [default]
+- **Controls:** мышь (перетаскивание карточки) или ←/→ на клавиатуре — [default]
+- **Modes:** одиночная игра — [user]
+- **Story:** без истории — [user]
+- **Setting and tone:** классическое / тёмное фэнтези, серьёзный тон — [user]
+- **Progression:** внутри забега — билд и заточка; между забегами — только знания игрока + QoL и скорость боя за монеты — [user]
+- **Failure:** HP 0 → забег окончен, 30% монет переходят на аккаунт — [user] (30% — [default])
+- **Session:** 30+ минут, забег до смерти — [user]
+- **Scale:** демо-срез: 3 босса (враги 15/30/45), ~40 базовых предметов, ~20 свойств, 10 слотов, ~8 типов врагов — [user] (числа — [default])
+- **Platforms (preliminary):** ПК — [user]
 
 ## Pillars
-- **<pillar>** — <falsifiable statement>
+- **Цифры решают** — исход боя полностью выводится из статов, видимых игроку; никакой ловкости рук и скрытых чисел; test: эффектная анимация или прозрачная цифра → прозрачная цифра
+- **Каждый дроп — выбор** — нет предметов, которые всегда лучше или всегда хуже: у сильного свойства есть цена; test: автоэкипировка лучшего или ручной свайп → свайп
+- **Монета нужна везде** — у монет всегда ≥3 конкурирующих трат (реролл, заточка, лавка, лечение, аккаунт); test: отдельная валюта под фичу или монеты → монеты
+- **Билд — подпись игрока** — к первому боссу два забега выглядят по-разному; test: универсально сильный стат или ситуативная синергия → синергия
 
 ## Anti-pillars
-- <what the game deliberately does not do>
+- Нет ручного управления в бою — все решения до боя [user]
+- Нет рюкзака-тетриса — только фиксированные слоты [user]
+- Нет мультиплеера и PvP [user]
+- Мета не даёт силы героя — только скорость, удобство и знания [user]
 
 ## What the agent decided
-- none
+- 10 слотов: оружие, щит, шлем, броня, перчатки, сапоги, пояс, амулет, 2 кольца
+- Редкости и случайные свойства как в Diablo
+- HP не восстанавливается само — лечение за монеты
+- 30% монет при смерти → аккаунт
+- Свайп мышью или ←/→; idle-механика — после демо (full)
+- Тон — тёмное фэнтези; камера — 2D-интерфейс
