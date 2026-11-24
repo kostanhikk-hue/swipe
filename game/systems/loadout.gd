@@ -4,18 +4,22 @@ extends RefCounted
 ## Build power uses the same formulas as combat (CombatTuning): √(DPS × effective HP).
 
 const SLOTS := ["weapon", "shield", "helm", "armor", "gloves", "boots", "belt", "amulet", "ring1", "ring2"]
-const STAT_ORDER := ["урон", "скорость", "проворство", "крит", "броня", "блок", "вампиризм", "жизнь"]
+const STAT_ORDER := ["урон", "скорость", "проворство", "крит", "сила крита", "пробивание", "броня", "блок",
+	"шипы", "вампиризм", "регенерация", "жизнь", "алчность"]
 
 var equipped := {}
 var rank := {}
 var coins := 0
 var econ := {}
 var ct: CombatTuning
+var resonance := {}   # data/m04/resonance.json; empty = off
 
 
 func _init(econ_: Dictionary, start: Dictionary, tuning: CombatTuning = null) -> void:
 	econ = econ_
 	ct = tuning if tuning else load("res://data/tuning/m03_combat.tres")
+	if FileAccess.file_exists("res://data/m04/resonance.json"):
+		resonance = JSON.parse_string(FileAccess.get_file_as_string("res://data/m04/resonance.json"))
 	for s in SLOTS:
 		equipped[s] = start.get(s, {})
 		rank[s] = 0
@@ -60,13 +64,74 @@ func total_stats(override_slot := "", override_item := {}, override_mult := -1.0
 			st = slot_stats(slot)
 		for k in st:
 			s[k] = float(s.get(k, 0.0)) + st[k]
+	var res := resonance_stats(tag_counts(override_slot, override_item))
+	for k in res:
+		s[k] = float(s.get(k, 0.0)) + res[k]
 	return s
+
+
+## M04: how many equipped items carry each tag (optionally with one slot swapped).
+func tag_counts(override_slot := "", override_item := {}) -> Dictionary:
+	var c := {}
+	for slot in SLOTS:
+		var it: Dictionary = override_item if slot == override_slot else equipped[slot]
+		if it.is_empty():
+			continue
+		for tg in it.get("tags", []):
+			c[tg] = int(c.get(tg, 0)) + 1
+	return c
+
+
+## Resonance level of a tag: 0 (none) .. 3 (7+ items).
+func resonance_level(count: int) -> int:
+	var lv := 0
+	if resonance.is_empty():
+		return 0
+	for th in resonance["thresholds"]:
+		if count >= int(th):
+			lv += 1
+	return lv
+
+
+func resonance_stats(counts: Dictionary) -> Dictionary:
+	var out := {}
+	if resonance.is_empty():
+		return out
+	for tg in counts:
+		var lv := resonance_level(int(counts[tg]))
+		if lv > 0 and resonance["tags"].has(tg):
+			var r: Dictionary = resonance["tags"][tg]
+			out[r["stat"]] = float(out.get(r["stat"], 0.0)) + float(r["v"][lv - 1])
+	return out
+
+
+## Text for the card when equipping changes a resonance level ("кровь 3: +3% вампиризм").
+func resonance_change(item: Dictionary) -> String:
+	if resonance.is_empty():
+		return ""
+	var before := tag_counts()
+	var after := tag_counts(target_slot(item), item)
+	var parts := []
+	for tg in after.keys() + before.keys():
+		var b := resonance_level(int(before.get(tg, 0)))
+		var a := resonance_level(int(after.get(tg, 0)))
+		if a != b and resonance["tags"].has(tg):
+			var r: Dictionary = resonance["tags"][tg]
+			var s := "%s %d: " % [tg, int(after.get(tg, 0))]
+			s += ("+%s %s" % [str(r["v"][a - 1]), r["stat"]]) if a > b else "теряется резонанс"
+			if s not in parts:
+				parts.append(s)
+	return " · ".join(parts)
 
 
 func power_of_stats(stats: Dictionary) -> float:
 	var h := Combat.hero_from(stats, 0.0, ct)
-	var e: float = Formulas.ehp(h["max_hp"], h["armor"], h["block"], ct.armor_k, ct.block_cap) * (1.0 + h["vamp"] / 50.0)
-	return Formulas.power(Formulas.dps(h["dmg"], h["speed"], h["crit"], ct.crit_mult), e)
+	# reference enemy: armor 20, ~1 hit/s — so penetration, thorns and regen count too
+	var ref_armor := 20.0 * (1.0 - minf(80.0, h["pen"]) / 100.0)
+	var d := Formulas.dps(h["dmg"], h["speed"], h["crit"], ct.crit_mult + h["critdmg"] / 100.0) * ct.armor_k / (ref_armor + ct.armor_k)
+	d += h["thorns"]
+	var e: float = Formulas.ehp(h["max_hp"] + h["regen"] * 8.0, h["armor"], h["block"], ct.armor_k, ct.block_cap) * (1.0 + h["vamp"] / 50.0)
+	return Formulas.power(d, e)
 
 
 func power() -> float:
@@ -99,7 +164,8 @@ func compare(item: Dictionary) -> Array:
 
 
 func sell_price(item: Dictionary) -> int:
-	return Formulas.sell_price(int(item["rarity"]), int(item.get("ilvl", 1)), econ["sell_base"], float(econ["sell_per_ilvl"]))
+	var greed := float(total_stats().get("алчность", 0.0))
+	return roundi(Formulas.sell_price(int(item["rarity"]), int(item.get("ilvl", 1)), econ["sell_base"], float(econ["sell_per_ilvl"])) * (1.0 + greed / 100.0))
 
 
 func equip(item: Dictionary) -> String:

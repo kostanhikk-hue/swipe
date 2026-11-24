@@ -71,7 +71,8 @@ func _draw() -> void:
 			draw_string(reg, Vector2(x + 48, y + 34), SLOT_NAMES[s], HORIZONTAL_ALIGNMENT_LEFT, 70, 13, E.INK_FADED)
 			for i in r + 1:
 				draw_circle(Vector2(x + 128 + i * 9, y + 30), 3.0, Pal.RARITY[r])
-		y += 46
+		y += 40
+	_resonance(x, y + 4, rng)
 	# build power
 	var pk := 1.0 + 0.35 * _ease(_power_punch)
 	var py := PANEL.end.y - 8
@@ -82,6 +83,35 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if preview_text != "" and absf(preview_delta) >= 0.5:
 		draw_string(bold, Vector2(x + 134, py), ("+%d" if preview_delta > 0 else "−%d") % absi(roundi(preview_delta)), HORIZONTAL_ALIGNMENT_LEFT, 70, 22, Color("#2E7D32") if preview_delta > 0 else E.CINNABAR)
+
+
+## M04: tag counters under the slots — "кровь 4/5 +3%".
+func _resonance(x: float, y: float, rng: RandomNumberGenerator) -> void:
+	if loadout.resonance.is_empty():
+		return
+	var counts := loadout.tag_counts()
+	var tags := counts.keys()
+	tags.sort_custom(func(a, b): return counts[a] > counts[b])
+	var reg := Fonts.regular()
+	var bold := Fonts.bold()
+	E.stroke(self, Vector2(x, y), Vector2(PANEL.end.x, y), 1.0, rng, E.INK_FADED)
+	draw_string(reg, Vector2(x + 4, y + 16), "резонанс тегов 3/5/7", HORIZONTAL_ALIGNMENT_LEFT, 200, 14, E.INK_FADED)
+	y += 34
+	for tg in tags.slice(0, 3):
+		var n := int(counts[tg])
+		var lv := loadout.resonance_level(n)
+		var th: Array = loadout.resonance["thresholds"]
+		var nxt := int(th[mini(lv, th.size() - 1)])
+		var r: Dictionary = loadout.resonance["tags"].get(tg, {})
+		var col: Color = Pal.stat(r.get("stat", "")) if lv > 0 else E.INK_FADED
+		draw_string(bold if lv > 0 else reg, Vector2(x + 4, y), "%s %d/%d" % [tg, n, nxt], HORIZONTAL_ALIGNMENT_LEFT, 110, 17, E.INK if lv > 0 else E.INK_FADED)
+		if lv > 0:
+			draw_string(bold, Vector2(x + 100, y), "+%s %s" % [str(r["v"][lv - 1]), _short(r["stat"])], HORIZONTAL_ALIGNMENT_LEFT, 106, 15, col)
+		y += 20
+
+
+func _short(stat: String) -> String:
+	return {"вампиризм": "вамп.", "пробивание": "проб.", "сила крита": "с.крит", "алчность": "алч."}.get(stat, stat)
 
 
 func _ease(t: float) -> float:

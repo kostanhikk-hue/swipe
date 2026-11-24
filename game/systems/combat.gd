@@ -1,7 +1,9 @@
 class_name Combat
 extends RefCounted
 ## M03 auto-battle: deterministic real-time simulation on a fixed step. Emits event dicts:
-## {t, kind: hit|crit|block|heal|death|timeout, src: hero|enemy, amount}
+## {t, kind: hit|crit|block|heal|thorns|regen|death|timeout, src: hero|enemy, amount}
+## Optional fighter keys: critdmg (% extra crit multiplier), pen (% armor ignored), thorns (flat back
+## when hit), regen (HP/s), greed (% coins; not used in combat).
 
 const STEP := 0.05
 
@@ -20,6 +22,8 @@ func _init(hero: Dictionary, enemy: Dictionary, tuning: CombatTuning, seed_value
 	f["enemy"] = enemy.duplicate()
 	f["hero"]["cd"] = t.hero_first_delay
 	f["enemy"]["cd"] = t.enemy_first_delay
+	for side in f:
+		f[side]["regen_acc"] = 0.0
 
 
 ## Hero fighter from summed item stats (Russian stat keys as in data).
@@ -32,7 +36,10 @@ static func hero_from(stats: Dictionary, hp: float, tuning: CombatTuning) -> Dic
 		"dmg": tuning.hero_base_dmg + float(stats.get("урон", 0.0)),
 		"speed": maxf(0.2, base_speed * (1.0 + float(stats.get("проворство", 0.0)) / 100.0)),
 		"armor": maxf(0.0, float(stats.get("броня", 0.0))), "crit": float(stats.get("крит", 0.0)),
-		"block": float(stats.get("блок", 0.0)), "vamp": float(stats.get("вампиризм", 0.0))}
+		"block": float(stats.get("блок", 0.0)), "vamp": float(stats.get("вампиризм", 0.0)),
+		"critdmg": float(stats.get("сила крита", 0.0)), "pen": float(stats.get("пробивание", 0.0)),
+		"thorns": float(stats.get("шипы", 0.0)), "regen": float(stats.get("регенерация", 0.0)),
+		"greed": float(stats.get("алчность", 0.0))}
 
 
 ## Advances by dt (any size); returns the events of that interval in order.
@@ -45,6 +52,14 @@ func advance(dt: float) -> Array:
 		time += h
 		for side in ["hero", "enemy"]:   # hero first on ties: deterministic
 			var a: Dictionary = f[side]
+			var rg := float(a.get("regen", 0.0))
+			if rg > 0.0 and a["hp"] < a["max_hp"]:
+				var add := minf(a["max_hp"] - a["hp"], rg * h)
+				a["hp"] += add
+				a["regen_acc"] += add
+				if a["regen_acc"] >= 1.0:
+					out.append({"t": time, "kind": "regen", "src": side, "amount": a["regen_acc"]})
+					a["regen_acc"] = 0.0
 			a["cd"] -= h
 			if a["cd"] <= 0.0 and not over:
 				a["cd"] += 1.0 / maxf(0.05, a["speed"])
@@ -64,7 +79,9 @@ func _attack(side: String, out: Array) -> void:
 		out.append({"t": time, "kind": "block", "src": side, "amount": 0})
 		return
 	var is_crit: bool = rng.randf() * 100.0 < float(a["crit"])
-	var dmg: float = Formulas.armor_damage(a["dmg"] * (t.crit_mult if is_crit else 1.0), b["armor"], t.armor_k)
+	var cm := t.crit_mult + float(a.get("critdmg", 0.0)) / 100.0
+	var armor: float = float(b["armor"]) * (1.0 - minf(80.0, float(a.get("pen", 0.0))) / 100.0)
+	var dmg: float = Formulas.armor_damage(a["dmg"] * (cm if is_crit else 1.0), armor, t.armor_k)
 	b["hp"] = maxf(0.0, b["hp"] - dmg)
 	out.append({"t": time, "kind": "crit" if is_crit else "hit", "src": side, "amount": dmg})
 	if a["vamp"] > 0.0 and a["hp"] < a["max_hp"]:
@@ -76,3 +93,12 @@ func _attack(side: String, out: Array) -> void:
 		over = true
 		winner = side
 		out.append({"t": time, "kind": "death", "src": other, "amount": 0})
+		return
+	var th := float(b.get("thorns", 0.0))
+	if th > 0.0:
+		a["hp"] = maxf(0.0, a["hp"] - th)
+		out.append({"t": time, "kind": "thorns", "src": other, "amount": th})
+		if a["hp"] <= 0.0:
+			over = true
+			winner = other
+			out.append({"t": time, "kind": "death", "src": side, "amount": 0})

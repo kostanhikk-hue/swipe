@@ -5,7 +5,10 @@ const RARITY := [Color("#1F150E"), Color("#2457C5"), Color("#D9A400"), Color("#E
 const RARITY_TEXT := [Color("#1F150E"), Color("#2457C5"), Color("#9A7400"), Color("#C55A0C")]
 const RARITY_NAME := ["обычное", "магическое", "редкое", "легендарное"]
 const STAT := {"урон": Color("#C62828"), "скорость": Color("#00897B"), "крит": Color("#D81B60"),
-	"броня": Color("#546E7A"), "жизнь": Color("#2E7D32"), "вампиризм": Color("#7B1FA2"), "блок": Color("#6D4C41"), "проворство": Color("#0277BD")}
+	"броня": Color("#546E7A"), "жизнь": Color("#2E7D32"), "вампиризм": Color("#7B1FA2"), "блок": Color("#6D4C41"), "проворство": Color("#0277BD"),
+	"сила крита": Color("#AD1457"), "пробивание": Color("#37474F"), "шипы": Color("#558B2F"),
+	"регенерация": Color("#43A047"), "алчность": Color("#B8860B")}
+const PCT := ["крит", "сила крита", "пробивание", "проворство", "вампиризм", "блок", "алчность"]
 
 
 static func stat(k: String) -> Color:
@@ -48,6 +51,32 @@ static func stat_icon(ci: CanvasItem, k: String, c: Vector2, s: float) -> void:
 		"проворство":   # feather-like arrow
 			poly = PackedVector2Array([c + Vector2(0, -s), c + Vector2(s * 0.7, s * 0.1), c + Vector2(s * 0.25, s * 0.1), c + Vector2(s * 0.25, s), c + Vector2(-s * 0.25, s), c + Vector2(-s * 0.25, s * 0.1), c + Vector2(-s * 0.7, s * 0.1)])
 			ci.draw_colored_polygon(poly, col)
+		"сила крита":   # star in a ring
+			ci.draw_arc(c, s * 0.95, 0, TAU, 20, col, maxf(1.5, s * 0.22), true)
+			for i in 8:
+				var r := s * 0.7 if i % 2 == 0 else s * 0.25
+				poly.append(c + Vector2.from_angle(TAU * i / 8.0 - PI / 2) * r)
+			ci.draw_colored_polygon(poly, col)
+			return
+		"пробивание":   # arrow through a bar
+			ci.draw_line(c + Vector2(-s, 0), c + Vector2(s * 0.5, 0), col, maxf(2.0, s * 0.3))
+			ci.draw_colored_polygon(PackedVector2Array([c + Vector2(s, 0), c + Vector2(s * 0.3, -s * 0.55), c + Vector2(s * 0.3, s * 0.55)]), col)
+			ci.draw_line(c + Vector2(-s * 0.2, -s), c + Vector2(-s * 0.2, s), ink, maxf(1.5, s * 0.2))
+			return
+		"шипы":   # thorny branch
+			ci.draw_line(c + Vector2(-s, s), c + Vector2(s, -s), col, maxf(2.0, s * 0.3))
+			for f in [-0.5, 0.0, 0.5]:
+				var p := c + Vector2(s * f, -s * f)
+				ci.draw_colored_polygon(PackedVector2Array([p, p + Vector2(-s * 0.15, -s * 0.5), p + Vector2(s * 0.2, -s * 0.1)]), col)
+			return
+		"регенерация":   # cross
+			ci.draw_rect(Rect2(c - Vector2(s * 0.3, s), Vector2(s * 0.6, s * 2)), col)
+			ci.draw_rect(Rect2(c - Vector2(s, s * 0.3), Vector2(s * 2, s * 0.6)), col)
+			return
+		"алчность":   # coin
+			ci.draw_circle(c, s * 0.9, col)
+			ci.draw_arc(c, s * 0.55, 0, TAU, 14, ink, 1.0, true)
+			return
 		"блок":   # round shield with boss
 			ci.draw_circle(c, s * 0.9, col)
 			ci.draw_circle(c, s * 0.3, ink)

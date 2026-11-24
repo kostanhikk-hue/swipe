@@ -2,8 +2,8 @@ extends Node2D
 ## Short combat log on the left: newest at the bottom, older lines fade.
 
 const E := preload("res://scripts/engrave.gd")
-const AREA := Rect2(40, 400, 300, 150)
-const MAX := 5
+const AREA := Rect2(40, 436, 300, 116)
+const MAX := 4
 
 var lines: Array = []   # [text, color]
 

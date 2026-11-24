@@ -1,0 +1,23 @@
+{
+  "affix_count": [[0, 0], [1, 2], [3, 4], [5, 5]],
+  "legend_mult": 1.3,
+  "flat_growth": 0.08,
+  "pct_growth": 0.03,
+  "pct_stats": ["крит", "сила крита", "пробивание", "проворство", "вампиризм", "блок", "алчность"],
+  "affixes": [
+    {"stat": "урон", "v": 3, "word": "силы", "slots": ["weapon", "gloves", "ring", "amulet"]},
+    {"stat": "крит", "v": 3, "word": "ворона", "slots": ["weapon", "gloves", "ring", "amulet", "helm"]},
+    {"stat": "сила крита", "v": 15, "word": "мясника", "slots": ["weapon", "gloves", "amulet", "ring"]},
+    {"stat": "пробивание", "v": 10, "word": "кузнеца", "slots": ["weapon", "gloves", "ring"]},
+    {"stat": "проворство", "v": 5, "word": "ветра", "slots": ["weapon", "gloves", "boots", "ring", "amulet"]},
+    {"stat": "вампиризм", "v": 2, "word": "вампира", "slots": ["weapon", "gloves", "ring", "amulet"]},
+    {"stat": "броня", "v": 5, "word": "крепости", "slots": ["helm", "armor", "shield", "boots", "belt", "gloves"]},
+    {"stat": "жизнь", "v": 10, "word": "жизни", "slots": ["helm", "armor", "belt", "amulet", "ring", "boots", "shield"]},
+    {"stat": "блок", "v": 4, "word": "стража", "slots": ["shield", "amulet"]},
+    {"stat": "шипы", "v": 3, "word": "терновника", "slots": ["armor", "shield", "helm"]},
+    {"stat": "регенерация", "v": 1.0, "word": "травника", "slots": ["armor", "belt", "amulet", "helm"]},
+    {"stat": "алчность", "v": 10, "word": "ростовщика", "slots": ["ring", "amulet", "gloves", "belt", "boots"]}
+  ],
+  "rare_first": ["Скорбь", "Шёпот", "Клятва", "Жатва", "Плач", "Зов", "Гнев", "Тень", "Печать", "Песнь", "Зуб", "Венец"],
+  "rare_second": ["вдовы", "пепла", "мертвеца", "звонаря", "палача", "ночи", "крови", "обета", "висельника", "ворона", "могилы", "пилигрима"]
+}

@@ -145,10 +145,8 @@ func _on_card_done() -> void:
 
 func _next_card() -> void:
 	item = _pick_item()
-	var slot := loadout.target_slot(item)
-	var melt_txt := "+1 заточка: %s" % slot
-	card.show_item(item, loadout.compare(item), items["rarity_names"][int(item["rarity"])],
-		loadout.power(), loadout.power_if_equipped(item), melt_txt)
+	card.show_item(item, loadout.compare(item), Pal.RARITY_NAME[int(item["rarity"])],
+		loadout.power(), loadout.power_if_equipped(item), loadout.resonance_change(item))
 	card.visible = true
 	card.position = rise_from
 	card.scale = Vector2.ONE * 0.25

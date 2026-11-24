@@ -1,6 +1,7 @@
 extends "res://gyms/swipe_gym.gd"
 ## M03 loop gym: enemy rises from the doorway → real-time auto-battle → drop card (M01) → next enemy.
 ## Keys as in the swipe gym; Tab = combat tuning (M03). Death → banner, R restarts the run.
+## Args: --depth=N (debug: start at depth N with a greedy build), --seed=N, --demo.
 
 const EnemyView := preload("res://views/enemy_view.gd")
 const CombatLog := preload("res://views/combat_log.gd")
@@ -10,6 +11,7 @@ const ENEMY_C := Vector2(640, 400)
 var ct: CombatTuning
 var enemies := {}
 var loot := {}
+var affixes := {}
 var depth := 1
 var best := 0
 var hero_hp := 0.0
@@ -30,6 +32,7 @@ func _start() -> void:
 	ct = (load("res://data/tuning/m03_combat.tres") as CombatTuning).duplicate()
 	enemies = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/enemies.json"))
 	loot = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/loot.json"))
+	affixes = JSON.parse_string(FileAccess.get_file_as_string("res://data/m02/affixes.json"))
 	enemy_v = EnemyView.new()
 	add_child(enemy_v)
 	move_child(enemy_v, back.get_index() + 1)
@@ -49,6 +52,14 @@ func _start() -> void:
 	panel.loadout = loadout
 	panel.queue_redraw()
 	_apply_clear()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--depth="):   # debug: start deeper with a greedily collected build
+			var target := int(a.get_slice("=", 1))
+			for dd in range(1, target):
+				var it := ItemGen.roll(dd, rng, loot, affixes)
+				if loadout.power_if_equipped(it) > loadout.power():
+					loadout.equip(it)
+			depth = target
 	hero_hp = _hero_max()
 	card.visible = false
 	swipe_enabled = false
@@ -175,6 +186,12 @@ func _on_event(ev: Dictionary) -> void:
 			fx.float_text("блок", where, E.INK, 36)
 			log_v.add("блок!" if not by_hero else "%s блокирует" % foe, E.INK_FADED)
 			sfx.play("block")
+		"thorns":
+			fx.float_text("шипы −%d" % amt, ENEMY_C + Vector2(0, -160) if by_hero else Vector2(1000, 170), Pal.stat("шипы"), 30)
+			log_v.add(("шипы ранят: −%d" if by_hero else "шипы врага: −%d") % amt, Pal.stat("шипы"))
+		"regen":
+			if by_hero and amt >= 2:
+				fx.float_text("+%d" % amt, Vector2(1000, 175), Pal.stat("регенерация"), 24)
 		"heal":
 			if amt < 1:
 				return
@@ -204,7 +221,8 @@ func _win() -> void:
 	fx.ink_burst(ENEMY_C, 220.0)
 	enemy_v.visible = false
 	var cr: Array = enemies["coins"]
-	var c := rng.randi_range(int(cr[0]), int(cr[1])) + depth
+	var greed := float(_hero_stats().get("алчность", 0.0))
+	var c := roundi((rng.randi_range(int(cr[0]), int(cr[1])) + depth) * (1.0 + greed / 100.0))
 	loadout.coins += c
 	coin_step = maxi(1, ceili(c / 6.0))
 	fx.spray_coins(ENEMY_C, hud.coin_anchor(), 6, rng)
@@ -238,4 +256,4 @@ func _on_card_done() -> void:
 
 
 func _pick_item() -> Dictionary:
-	return LootLite.roll(depth, rng, loot, ct.depth_loot)
+	return ItemGen.roll(depth, rng, loot, affixes)

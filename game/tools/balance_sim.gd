@@ -20,6 +20,8 @@ func _initialize() -> void:
 	var econ: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m01/economy.json"))
 	var enemies: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/enemies.json"))
 	var loot: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m03/loot.json"))
+	var aff: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m02/affixes.json"))
+	var res_runs := 0
 	var deaths := []
 	var tutorial_deaths := 0
 	var legend_at := {10: 0, 20: 0}
@@ -56,7 +58,7 @@ func _initialize() -> void:
 					tutorial_deaths += 1
 				break
 			hp = minf(maxhp, float(c.f["hero"]["hp"]) + maxhp * ct.heal_after_win)
-			var it := LootLite.roll(depth, rng, loot, ct.depth_loot)
+			var it := ItemGen.roll(depth, rng, loot, aff)
 			if lo.power_if_equipped(it) > lo.power():
 				lo.equip(it)
 			elif policy == "melt":
@@ -65,6 +67,10 @@ func _initialize() -> void:
 				lo.sell(it)
 			depth += 1
 		deaths.append(depth)
+		for tg in lo.tag_counts().values():
+			if lo.resonance_level(int(tg)) > 0:
+				res_runs += 1
+				break
 		run_secs.append(secs)
 	deaths.sort()
 	var pct := func(p: float) -> int: return deaths[clampi(int(p * deaths.size()), 0, deaths.size() - 1)]
@@ -73,6 +79,7 @@ func _initialize() -> void:
 	run_secs.sort()
 	print("tutorial deaths: %d · run length median %.1f min · legendaries equipped per run: at depth 10 %.2f, at 20 %.2f" % [tutorial_deaths,
 		run_secs[run_secs.size() / 2] / 60.0, legend_at[10] / maxf(1.0, reached[10]), legend_at[20] / maxf(1.0, reached[20])])
+	print("runs with an active resonance at death: %d%%" % roundi(100.0 * res_runs / runs))
 	var keys := times.keys()
 	keys.sort()
 	var line := "fight seconds by depth: "

@@ -3,8 +3,9 @@ extends Node2D
 ## plus the current enemy's stats under its health bar.
 
 const E := preload("res://scripts/engrave.gd")
-const AREA := Rect2(40, 124, 300, 262)
+const AREA := Rect2(40, 124, 300, 300)
 const ORDER := ["урон", "скорость", "крит", "броня", "блок", "вампиризм", "жизнь"]
+const EXTRA := {"critdmg": "сила крита", "pen": "пробивание", "thorns": "шипы", "regen": "регенерация", "greed": "алчность"}
 
 var hero := {}       # Combat.hero_from(...) dict
 var enemy := {}      # current enemy fighter dict or {}
@@ -28,7 +29,7 @@ func set_data(h: Dictionary, e: Dictionary, t: CombatTuning) -> void:
 
 
 func dps(f: Dictionary) -> float:
-	return Formulas.dps(float(f["dmg"]), float(f["speed"]), float(f["crit"]), crit_mult)
+	return Formulas.dps(float(f["dmg"]), float(f["speed"]), float(f["crit"]), crit_mult + float(f.get("critdmg", 0.0)) / 100.0)
 
 
 func _draw() -> void:
@@ -41,16 +42,21 @@ func _draw() -> void:
 	draw_string(bold, Vector2(x, y), "герой", HORIZONTAL_ALIGNMENT_LEFT, 120, 21, E.INK)
 	draw_string(bold, Vector2(x + 110, y), "≈ %d урона/с" % roundi(dps(hero)), HORIZONTAL_ALIGNMENT_RIGHT, 170, 21, Pal.stat("урон"))
 	y += 30
-	for s in ORDER:
+	var shown := ORDER.duplicate()
+	for key in EXTRA:
+		if float(hero.get(key, 0.0)) > 0.0:
+			shown.append(EXTRA[key])
+	var step := 24.0 if shown.size() <= 9 else 21.0
+	for s in shown:
 		var v := _val(s)
 		var note := _note(s)
-		Pal.stat_icon(self, s, Vector2(x + 8, y - 7), 8.0)
-		draw_string(bold, Vector2(x + 24, y), s, HORIZONTAL_ALIGNMENT_LEFT, 100, 19, Pal.stat(s))
-		draw_string(bold, Vector2(x + 110, y), v, HORIZONTAL_ALIGNMENT_LEFT, 60, 19, E.INK)
-		draw_string(reg, Vector2(x + 160, y), note, HORIZONTAL_ALIGNMENT_LEFT, 135, 16, E.INK_FADED)
-		y += 26
+		Pal.stat_icon(self, s, Vector2(x + 8, y - 6), 7.5)
+		draw_string(bold, Vector2(x + 22, y), s, HORIZONTAL_ALIGNMENT_LEFT, 100, 17, Pal.stat(s))
+		draw_string(bold, Vector2(x + 112, y), v, HORIZONTAL_ALIGNMENT_LEFT, 56, 17, E.INK)
+		draw_string(reg, Vector2(x + 160, y), note, HORIZONTAL_ALIGNMENT_LEFT, 135, 15, E.INK_FADED)
+		y += step
 	if not enemy.is_empty():
-		var through := Formulas.armor_damage(float(hero["dmg"]), float(enemy["armor"]), k)
+		var through := Formulas.armor_damage(float(hero["dmg"]), float(enemy["armor"]) * (1.0 - minf(80.0, float(hero.get("pen", 0.0))) / 100.0), k)
 		draw_string(reg, Vector2(x, y + 6), "по врагу: −%d за удар" % roundi(through), HORIZONTAL_ALIGNMENT_LEFT, 290, 17, E.INK)
 		_enemy_line()
 
@@ -71,6 +77,16 @@ func _val(s: String) -> String:
 			return "%d%%" % roundi(hero["vamp"])
 		"жизнь":
 			return "%d" % roundi(hero["max_hp"])
+		"сила крита":
+			return "+%d%%" % roundi(hero["critdmg"])
+		"пробивание":
+			return "%d%%" % roundi(minf(80.0, hero["pen"]))
+		"шипы":
+			return str(roundi(hero["thorns"]))
+		"регенерация":
+			return ("%.1f" % float(hero["regen"])).replace(".", ",")
+		"алчность":
+			return "+%d%%" % roundi(hero["greed"])
 	return ""
 
 
@@ -81,7 +97,7 @@ func _note(s: String) -> String:
 		"скорость":
 			return "уд/с с проворством"
 		"крит":
-			return "шанс ×%s урона" % str(crit_mult).replace(".", ",")
+			return "шанс ×%s урона" % str(snappedf(crit_mult + float(hero.get("critdmg", 0.0)) / 100.0, 0.01)).replace(".", ",")
 		"броня":
 			return "−%d%% входящего" % roundi(100.0 * float(hero["armor"]) / (float(hero["armor"]) + k))
 		"блок":
@@ -90,6 +106,16 @@ func _note(s: String) -> String:
 			return "+%s HP/с" % ("%.1f" % (dps(hero) * float(hero["vamp"]) / 100.0)).replace(".", ",")
 		"жизнь":
 			return "запас здоровья"
+		"сила крита":
+			return "к множителю крита"
+		"пробивание":
+			return "брони врага игнор."
+		"шипы":
+			return "урон тому, кто бьёт"
+		"регенерация":
+			return "HP в секунду"
+		"алчность":
+			return "больше монет"
 	return ""
 
 
