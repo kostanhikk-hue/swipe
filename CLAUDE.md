@@ -2,18 +2,20 @@
 
 The game "Реликварий (рабочее название)" is built with the studioigor pipeline. The agent leads the user step by step
 from idea to release; the user decides taste and direction and plays often. Run the
-pipeline work through the studioigor skill (`/root/.studioigor-skill/SKILL.md`, phase rules in
-`/root/.studioigor-skill/references/`).
+pipeline work through the studioigor skill (`~/.claude/skills/studioigor/SKILL.md`, phase rules in
+`~/.claude/skills/studioigor/references/`).
+
+> Скилл studioigor установлен в `~/.claude/skills/studioigor`; если он стоит в другой папке — используй её во всех путях ниже.
 
 ## Start of every session
-1. `python3 /root/.studioigor-skill/scripts/studio.py status` — shows the phase, open gates, what's
+1. `python3 ~/.claude/skills/studioigor/scripts/studio.py status` — shows the phase, open gates, what's
    next, learned items for this phase (accepted improvements and user preferences) and
    warnings. Do what it says.
 2. Read `.studioigor/STATE.md`: "Now", open questions, session log.
 3. What is recorded in `.studioigor/` (especially DECISIONS.md) is already decided: do not
    ask again and do not rebuild it. Trust the disk more than context memory.
 4. `status` says "AUTOPILOT ACTIVE" and you are not an autopilot tick — do not edit the
-   project: independent development is running. To intervene — `/root/.studioigor-skill/scripts/autopilot.py stop`.
+   project: independent development is running. To intervene — `~/.claude/skills/studioigor/scripts/autopilot.py stop`.
 
 If you are a subagent with a task from the lead — do not run `status`: it ticks gates and
 changes files. Work on the task and return the contract from your role.
@@ -36,19 +38,19 @@ changes files. Work on the task and return the contract from your role.
 - Record the decision: `studio.py decide "…" --by user|agent --why "…"`. The user
   stepped away (`/loop`) — don't ask, decide yourself `--by agent`. Autopilot (independent
   development) — taste decisions `--by proxy`, user gates `tick "…" --proxy`, rules in
-  `/root/.studioigor-skill/references/autopilot.md`.
+  `~/.claude/skills/studioigor/references/autopilot.md`.
 - "Always do it this way" / "I don't like X" — right away
-  `python3 /root/.studioigor-skill/scripts/learn.py prefer "…"`: it stays in this game
+  `python3 ~/.claude/skills/studioigor/scripts/learn.py prefer "…"`: it stays in this game
   (`.studioigor/PREFERENCES.md`). `--global` only for a rule about how to work with the user
   in any game, never for this game's taste.
 
 ## Git
 - Commit at every step (a decision, closed gates, a locked mechanic):
-  `python3 /root/.studioigor-skill/scripts/studio.py commit "…"`.
+  `python3 ~/.claude/skills/studioigor/scripts/studio.py commit "…"`.
 - Never push or publish unless the user asked for it.
 - Subagents that change files work in a git worktree (`isolation: "worktree"`).
   The lead reviews the diff, merges one at a time and checks the game after each merge.
-  `.claude/worktrees/` must be in .gitignore. The procedure is in `/root/.studioigor-skill/references/team.md`.
+  `.claude/worktrees/` must be in .gitignore. The procedure is in `~/.claude/skills/studioigor/references/team.md`.
 - Live Blender (blender-mcp) and the engine editor via MCP — main session only.
   Subagents work headless.
 
@@ -56,13 +58,13 @@ changes files. Work on the task and return the contract from your role.
 - Verified commands live in `.studioigor/ENV.md`: RUN (the user sees the game), TEST,
   BUILD, CAPTURE (frames in `.studioigor/captures/`), EDITOR. Take them from there, don't make them up.
   A command changed — update ENV.md and run `studio.py verify`.
-- The code standard is `/root/.studioigor-skill/references/code.md`: tuning parameters in data files, simple
+- The code standard is `~/.claude/skills/studioigor/references/code.md`: tuning parameters in data files, simple
   architecture with nothing "for the future".
 - Studio roles live in `.claude/agents/`: game-designer, art-director, tech-artist,
   gameplay-programmer, level-designer, sound-designer, narrative-designer, qa-tester.
 
 ## Do not touch
-- Never edit the skill's files (`/root/.studioigor-skill/SKILL.md`, `references/`, `scripts/`).
+- Never edit the skill's files (`~/.claude/skills/studioigor/SKILL.md`, `references/`, `scripts/`).
   Found a better way — `learn.py propose`; `status` will show what was accepted.
 - Change the `.studioigor/` state through `studio.py` (decide, tick, note, commit) when
   there is a command for it.
