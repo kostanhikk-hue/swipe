@@ -99,6 +99,6 @@ func _fmt(stat: String, v) -> String:
 	var f := float(v)
 	if stat == "скорость":
 		return ("%.2f" % f).replace(".", ",")
-	if stat in ["крит", "вампиризм"]:
+	if stat in ["крит", "вампиризм", "проворство", "блок"]:
 		return "%d%%" % roundi(f)
 	return str(roundi(f))

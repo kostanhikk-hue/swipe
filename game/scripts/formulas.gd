@@ -15,12 +15,20 @@ static func sell_price(rarity: int, ilvl: int, base: Array, per_ilvl: float) -> 
 	return int(round(float(base[rarity]) * (1.0 + per_ilvl * ilvl)))
 
 
-## "Build power": weighted sum of stats, times the slot's sharpening multiplier.
-static func power_of(stats: Dictionary, weights: Dictionary, mult := 1.0) -> float:
-	var p := 0.0
-	for k in stats:
-		p += float(stats[k]) * float(weights.get(k, 0.0)) * mult
-	return p
+## Expected damage per second with crits.
+static func dps(dmg: float, speed: float, crit: float, crit_mult: float) -> float:
+	return dmg * speed * (1.0 + minf(100.0, crit) / 100.0 * (crit_mult - 1.0))
+
+
+## Effective HP: how much raw damage it takes to kill (armor, block, lifesteal stretch HP).
+static func ehp(hp: float, armor: float, block: float, k: float, block_cap: float) -> float:
+	var through := k / (maxf(0.0, armor) + k) * (1.0 - minf(block, block_cap) / 100.0)
+	return hp / maxf(0.05, through)
+
+
+## "Build power" shown on cards: geometric mean of offence and defence.
+static func power(dps_v: float, ehp_v: float) -> float:
+	return sqrt(maxf(0.0, dps_v) * maxf(0.0, ehp_v))
 
 
 ## Armor never blocks everything: damage × K / (armor + K).

@@ -11,8 +11,17 @@ func test_sell_price() -> void:
 	assert_eq(Formulas.sell_price(3, 10, [6, 14, 30, 70], 0.1), 140)
 
 
-func test_power_of() -> void:
-	assert_almost_eq(Formulas.power_of({"урон": 10, "крит": 4}, {"урон": 1.0, "крит": 1.5}, 1.1), 17.6, 0.001)
+func test_dps_ehp_power() -> void:
+	assert_almost_eq(Formulas.dps(10.0, 2.0, 50.0, 2.0), 30.0, 0.001)
+	assert_almost_eq(Formulas.ehp(100.0, 100.0, 0.0, 100.0, 60.0), 200.0, 0.001)
+	assert_almost_eq(Formulas.power(16.0, 100.0), 40.0, 0.001)
+
+
+func test_axe_slower_than_sword() -> void:
+	# item logic: weapon speed is the weapon's own, sharpening never speeds it up
+	var axe := {"stats": {"урон": 19, "скорость": 0.85}}
+	var sword := {"stats": {"урон": 13, "скорость": 1.1}}
+	assert_lt(float(Loadout.scaled(axe, 1.5)["скорость"]), float(Loadout.scaled(sword, 1.0)["скорость"]))
 
 
 func test_swipe_rules() -> void:

@@ -23,10 +23,15 @@ func _init(hero: Dictionary, enemy: Dictionary, tuning: CombatTuning, seed_value
 
 
 ## Hero fighter from summed item stats (Russian stat keys as in data).
+## Attack speed = weapon speed (or fists) × (1 + проворство%).
 static func hero_from(stats: Dictionary, hp: float, tuning: CombatTuning) -> Dictionary:
+	var base_speed := float(stats.get("скорость", 0.0))
+	if base_speed <= 0.0:
+		base_speed = tuning.fist_speed
 	return {"hp": hp, "max_hp": tuning.hero_base_hp + float(stats.get("жизнь", 0.0)),
-		"dmg": tuning.hero_base_dmg + float(stats.get("урон", 0.0)), "speed": maxf(0.2, float(stats.get("скорость", 0.6))),
-		"armor": float(stats.get("броня", 0.0)), "crit": float(stats.get("крит", 0.0)),
+		"dmg": tuning.hero_base_dmg + float(stats.get("урон", 0.0)),
+		"speed": maxf(0.2, base_speed * (1.0 + float(stats.get("проворство", 0.0)) / 100.0)),
+		"armor": maxf(0.0, float(stats.get("броня", 0.0))), "crit": float(stats.get("крит", 0.0)),
 		"block": float(stats.get("блок", 0.0)), "vamp": float(stats.get("вампиризм", 0.0))}
 
 

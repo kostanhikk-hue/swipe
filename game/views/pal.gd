@@ -5,7 +5,7 @@ const RARITY := [Color("#1F150E"), Color("#2457C5"), Color("#D9A400"), Color("#E
 const RARITY_TEXT := [Color("#1F150E"), Color("#2457C5"), Color("#9A7400"), Color("#C55A0C")]
 const RARITY_NAME := ["обычное", "магическое", "редкое", "легендарное"]
 const STAT := {"урон": Color("#C62828"), "скорость": Color("#00897B"), "крит": Color("#D81B60"),
-	"броня": Color("#546E7A"), "жизнь": Color("#2E7D32"), "вампиризм": Color("#7B1FA2"), "блок": Color("#6D4C41")}
+	"броня": Color("#546E7A"), "жизнь": Color("#2E7D32"), "вампиризм": Color("#7B1FA2"), "блок": Color("#6D4C41"), "проворство": Color("#0277BD")}
 
 
 static func stat(k: String) -> Color:
@@ -45,6 +45,9 @@ static func stat_icon(ci: CanvasItem, k: String, c: Vector2, s: float) -> void:
 			poly = PackedVector2Array([c + Vector2(-s * 0.55, s * 0.05), c + Vector2(0, -s), c + Vector2(s * 0.55, s * 0.05)])
 			ci.draw_colored_polygon(poly, col)
 			return
+		"проворство":   # feather-like arrow
+			poly = PackedVector2Array([c + Vector2(0, -s), c + Vector2(s * 0.7, s * 0.1), c + Vector2(s * 0.25, s * 0.1), c + Vector2(s * 0.25, s), c + Vector2(-s * 0.25, s), c + Vector2(-s * 0.25, s * 0.1), c + Vector2(-s * 0.7, s * 0.1)])
+			ci.draw_colored_polygon(poly, col)
 		"блок":   # round shield with boss
 			ci.draw_circle(c, s * 0.9, col)
 			ci.draw_circle(c, s * 0.3, ink)

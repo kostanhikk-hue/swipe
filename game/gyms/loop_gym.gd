@@ -45,6 +45,9 @@ func _start() -> void:
 	add_child(sheet)
 	move_child(sheet, log_v.get_index() + 1)
 	tpanel.bind(ct, "M03")
+	loadout = Loadout.new(loadout.econ, {}, ct)   # the run starts naked (decision #27)
+	panel.loadout = loadout
+	panel.queue_redraw()
 	_apply_clear()
 	hero_hp = _hero_max()
 	card.visible = false
@@ -69,12 +72,7 @@ func _apply_clear() -> void:
 
 
 func _hero_stats() -> Dictionary:
-	var s := {}
-	for slot in Loadout.SLOTS:
-		var st := loadout.slot_stats(slot)
-		for k in st:
-			s[k] = float(s.get(k, 0.0)) + st[k]
-	return s
+	return loadout.total_stats()
 
 
 func _hero_max() -> float:

@@ -28,7 +28,7 @@ func set_data(h: Dictionary, e: Dictionary, t: CombatTuning) -> void:
 
 
 func dps(f: Dictionary) -> float:
-	return float(f["dmg"]) * float(f["speed"]) * (1.0 + minf(100.0, float(f["crit"])) / 100.0 * (crit_mult - 1.0))
+	return Formulas.dps(float(f["dmg"]), float(f["speed"]), float(f["crit"]), crit_mult)
 
 
 func _draw() -> void:
@@ -79,7 +79,7 @@ func _note(s: String) -> String:
 		"урон":
 			return "за удар"
 		"скорость":
-			return "ударов в секунду"
+			return "уд/с с проворством"
 		"крит":
 			return "шанс ×%s урона" % str(crit_mult).replace(".", ",")
 		"броня":

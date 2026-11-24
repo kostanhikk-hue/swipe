@@ -7,7 +7,11 @@ extends Resource
 @export_range(0.0, 90.0, 1.0) var block_cap := 60.0            ## % max block chance
 @export_range(5.0, 60.0, 1.0) var time_limit := 30.0           ## s; over → hero loses
 @export_range(10.0, 300.0, 5.0) var hero_base_hp := 100.0
-@export_range(0.0, 20.0, 0.5) var hero_base_dmg := 4.0
+@export_range(0.0, 20.0, 0.5) var hero_base_dmg := 6.0           ## fists; weapon damage adds on top
+@export_range(0.2, 2.0, 0.05) var fist_speed := 0.9             ## attacks/s without a weapon
+@export_range(0, 20, 1) var tutorial_depth := 5                ## first N enemies are guaranteed wins
+@export_range(0.05, 1.0, 0.05) var tutorial_mult := 0.3          ## their HP/damage/armor share
+@export_range(0, 20, 1) var ramp_depths := 6                   ## after the tutorial, strength ramps to 100% over N depths
 @export_range(0.0, 2.0, 0.05) var hero_first_delay := 0.3
 @export_range(0.0, 2.0, 0.05) var enemy_first_delay := 0.7
 @export_range(0.0, 1.0, 0.05) var heal_after_win := 0.2       ## temporary until M06 healing

@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-depth_hp = 0.14
-depth_dmg = 0.11
+depth_hp = 0.09
+depth_dmg = 0.07
+depth_loot = 0.08
 heal_after_win = 0.12
