@@ -110,4 +110,6 @@ func _draw() -> void:
 	for t in texts:
 		var k: float = t["t"] / t["life"]
 		var p: Vector2 = t["p"] + Vector2(0, -70.0 * k)
-		draw_string(Fonts.bold(), p - Vector2(100, 0), t["s"], HORIZONTAL_ALIGNMENT_CENTER, 200, t["size"], Color(t["col"], 1.0 - k * k))
+		var a := 1.0 - k * k
+		draw_string_outline(Fonts.bold(), p - Vector2(100, 0), t["s"], HORIZONTAL_ALIGNMENT_CENTER, 200, t["size"], maxi(6, t["size"] / 5), Color(E.PAPER_LIGHT, a))
+		draw_string(Fonts.bold(), p - Vector2(100, 0), t["s"], HORIZONTAL_ALIGNMENT_CENTER, 200, t["size"], Color(t["col"], a))

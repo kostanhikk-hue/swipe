@@ -2,8 +2,9 @@ extends Node2D
 ## Equipped items grouped by rarity, sharpening ranks, build power; Reigns-like preview.
 
 const E := preload("res://scripts/engrave.gd")
-const RARITY := ["обычные", "магические", "редкие", "легендарные"]
 const PANEL := Rect2(1046, 116, 206, 556)
+const SLOT_NAMES := {"weapon": "оружие", "shield": "щит", "helm": "шлем", "armor": "броня", "gloves": "перчатки",
+	"boots": "сапоги", "belt": "пояс", "amulet": "амулет", "ring1": "кольцо", "ring2": "кольцо"}
 
 var loadout: Loadout
 var preview_slot := ""
@@ -48,34 +49,29 @@ func _draw() -> void:
 	var x := PANEL.position.x
 	var y := PANEL.position.y + 4
 	draw_string(bold, Vector2(x, y + 18), "снаряжение", HORIZONTAL_ALIGNMENT_CENTER, PANEL.size.x, 22, E.INK)
-	y += 30
-	for r in range(3, -1, -1):
-		var slots := Loadout.SLOTS.filter(func(s): return not loadout.equipped[s].is_empty() and int(loadout.equipped[s]["rarity"]) == r)
-		if slots.is_empty():
-			continue
-		var col := E.CINNABAR if r == 3 else E.INK_FADED
-		draw_string(reg, Vector2(x + 4, y + 14), RARITY[r], HORIZONTAL_ALIGNMENT_LEFT, 120, 16, col)
-		E.stroke(self, Vector2(x + 96, y + 9), Vector2(PANEL.end.x - 2, y + 9), 1.0, rng, col)
-		y += 20
-		for s in slots:
-			var it: Dictionary = loadout.equipped[s]
-			var cell := Rect2(x + 4, y, 36, 36)
-			slot_pos[s] = cell.get_center()
-			var k := 1.0 + 0.6 * _ease(_punch.get(s, 0.0))
-			draw_set_transform(cell.get_center() * (1.0 - k), 0.0, Vector2.ONE * k)
-			draw_rect(cell, E.PAPER_LIGHT)
-			ItemArt.rarity_frame(self, cell, r)
+	y += 32
+	for s in Loadout.SLOTS:
+		var it: Dictionary = loadout.equipped[s]
+		var r := int(it.get("rarity", 0))
+		var cell := Rect2(x + 4, y, 36, 36)
+		slot_pos[s] = cell.get_center()
+		var k := 1.0 + 0.6 * _ease(_punch.get(s, 0.0))
+		draw_set_transform(cell.get_center() * (1.0 - k), 0.0, Vector2.ONE * k)
+		draw_rect(cell, E.PAPER_LIGHT)
+		ItemArt.rarity_frame(self, cell, r)
+		if not it.is_empty():
 			ItemArt.draw_item(self, s, cell.get_center(), 11, rng)
-			draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-			var nm: String = it["name"] + ("  +%d" % loadout.rank[s] if loadout.rank[s] > 0 else "")
-			draw_string(bold if r >= 2 else reg, Vector2(x + 48, y + 17), nm, HORIZONTAL_ALIGNMENT_LEFT, 160, 17, E.INK)
-			if s == preview_slot and preview_text != "":
-				draw_colored_polygon(PackedVector2Array([Vector2(x - 14, y + 8), Vector2(x - 2, y + 18), Vector2(x - 14, y + 28)]), E.INK)
-				draw_string(bold, Vector2(x + 48, y + 34), preview_text, HORIZONTAL_ALIGNMENT_LEFT, 160, 15, E.INK_FADED)
-			else:
-				for i in r + 1:
-					draw_circle(Vector2(x + 52 + i * 9, y + 29), 2.6, E.CINNABAR if r == 3 else E.INK)
-			y += 42
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var nm: String = (it["name"] if not it.is_empty() else SLOT_NAMES[s]) + ("  +%d" % loadout.rank[s] if loadout.rank[s] > 0 else "")
+		draw_string(bold if r >= 2 else reg, Vector2(x + 48, y + 17), nm, HORIZONTAL_ALIGNMENT_LEFT, 160, 17, E.INK if not it.is_empty() else E.INK_FADED)
+		if s == preview_slot and preview_text != "":
+			draw_colored_polygon(PackedVector2Array([Vector2(x - 14, y + 8), Vector2(x - 2, y + 18), Vector2(x - 14, y + 28)]), E.INK)
+			draw_string(bold, Vector2(x + 48, y + 34), preview_text, HORIZONTAL_ALIGNMENT_LEFT, 160, 15, E.INK_FADED)
+		else:
+			draw_string(reg, Vector2(x + 48, y + 34), SLOT_NAMES[s], HORIZONTAL_ALIGNMENT_LEFT, 70, 13, E.INK_FADED)
+			for i in r + 1:
+				draw_circle(Vector2(x + 128 + i * 9, y + 30), 2.6, E.CINNABAR if r == 3 else E.INK)
+		y += 46
 	# build power
 	var pk := 1.0 + 0.35 * _ease(_power_punch)
 	var py := PANEL.end.y - 8

@@ -7,7 +7,7 @@ const V := Vector2(640, 280)
 const DOOR := Rect2(565, 175, 150, 210)
 const SCREEN := Rect2(0, 0, 1280, 720)
 
-@export var layer := "back"
+@export var layer := "back"   # back | front (hand + vignette) | hand | vignette
 var clear: Array = []   # polygons of clean paper under lettering
 
 
@@ -16,8 +16,10 @@ func _draw() -> void:
 	rng.seed = 1489 if layer == "back" else 77
 	if layer == "back":
 		_corridor(rng)
-	else:
+		return
+	if layer in ["front", "hand"]:
 		_hand(rng)
+	if layer in ["front", "vignette"]:
 		_vignette(rng)
 
 

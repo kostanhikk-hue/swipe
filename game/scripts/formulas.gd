@@ -21,3 +21,8 @@ static func power_of(stats: Dictionary, weights: Dictionary, mult := 1.0) -> flo
 	for k in stats:
 		p += float(stats[k]) * float(weights.get(k, 0.0)) * mult
 	return p
+
+
+## Armor never blocks everything: damage × K / (armor + K).
+static func armor_damage(dmg: float, armor: float, k: float) -> float:
+	return dmg * k / (maxf(0.0, armor) + k)

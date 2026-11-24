@@ -1,7 +1,7 @@
 extends Node
 ## Single point for all sound: play(name). Small voice pool, slight pitch variation.
 
-const NAMES := ["swish", "coin", "equip", "melt", "rise", "grab"]
+const NAMES := ["swish", "coin", "equip", "melt", "rise", "grab", "hit", "crit", "block", "hurt", "win", "death"]
 var _streams := {}
 var _pool: Array = []
 var _next := 0

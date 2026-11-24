@@ -45,6 +45,8 @@ var _preset_a := {}
 var _demo := false
 var _demo_t := 0.0
 var _demo_step := 0
+var swipe_enabled := true      # the loop gym turns swipes off during fights
+var rise_from := DOOR_C
 
 var back: Node2D
 var front: Node2D
@@ -104,15 +106,24 @@ func _ready() -> void:
 	ol.add_child(overlay)
 	fx.coin_arrived.connect(_on_coin)
 	_apply_clear()
+	_start()
+
+
+func _start() -> void:
 	_next_card()
 
 
-func _apply_clear() -> void:
+func _clear_rects() -> Array:
 	var c := [_soft(Rect2(36, 40, 330, 66)), _soft(Rect2(930, 40, 314, 66)), _soft(BuildPanel.PANEL.grow(8)),
 		_soft(Rect2(290, 642, 280, 38)), _soft(Rect2(770, 642, 240, 38))]
-	hud.melt_on = tuning.melt_enabled > 0.5
-	if hud.melt_on:
+	if tuning.melt_enabled > 0.5:
 		c.append(_soft(Rect2(480, 104, 320, 34)))
+	return c
+
+
+func _apply_clear() -> void:
+	hud.melt_on = tuning.melt_enabled > 0.5
+	var c := _clear_rects()
 	back.clear = c
 	front.clear = c
 	back.queue_redraw()
@@ -122,16 +133,24 @@ func _apply_clear() -> void:
 
 # ------------------------------------------------------------- flow
 
-func _next_card() -> void:
+func _pick_item() -> Dictionary:
 	var deck: Array = items["deck"]
-	item = deck[deck_i % deck.size()]
 	deck_i += 1
+	return deck[(deck_i - 1) % deck.size()]
+
+
+func _on_card_done() -> void:
+	_next_card()
+
+
+func _next_card() -> void:
+	item = _pick_item()
 	var slot := loadout.target_slot(item)
 	var melt_txt := "+1 заточка: %s" % slot
 	card.show_item(item, loadout.compare(item), items["rarity_names"][int(item["rarity"])],
 		loadout.power(), loadout.power_if_equipped(item), melt_txt)
 	card.visible = true
-	card.position = DOOR_C
+	card.position = rise_from
 	card.scale = Vector2.ONE * 0.25
 	card.rotation = 0.0
 	_set_state(St.RISE)
@@ -211,11 +230,11 @@ func _process(delta: float) -> void:
 	st_t += delta
 	if _demo:
 		_run_demo(delta)
-	match state:
+	match state if swipe_enabled else -1:
 		St.RISE:
 			var k := clampf(st_t / tuning.rise_time, 0.0, 1.0)
 			var e := 1.0 + 2.2 * pow(k - 1.0, 3) + 1.2 * pow(k - 1.0, 2)   # ease-out-back
-			card.position = DOOR_C.lerp(HOME, e)
+			card.position = rise_from.lerp(HOME, e)
 			card.scale = Vector2.ONE * lerpf(0.25, 1.0, e)
 			if k >= 1.0:
 				_set_state(St.IDLE)
@@ -257,8 +276,8 @@ func _process(delta: float) -> void:
 				_set_state(St.GONE)
 		St.GONE:
 			if st_t > 0.3:
-				_next_card()
-	if state in [St.DRAG, St.RETURN, St.IDLE]:
+				_on_card_done()
+	if swipe_enabled and state in [St.DRAG, St.RETURN, St.IDLE]:
 		_update_lean()
 	# camera shake with quadratic decay
 	if shake_left > 0.0:
@@ -306,7 +325,7 @@ func _unhandled_input(e: InputEvent) -> void:
 				_apply_preset(_preset_a)
 			KEY_2:
 				_apply_preset(PRESET_B)
-	var ready_state := state in [St.IDLE, St.RISE, St.RETURN]
+	var ready_state := swipe_enabled and state in [St.IDLE, St.RISE, St.RETURN]
 	if ready_state:
 		var k := tuning.exit_speed_min
 		if e.is_action_pressed("swipe_left"):
