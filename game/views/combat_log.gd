@@ -2,8 +2,8 @@ extends Node2D
 ## Short combat log on the left: newest at the bottom, older lines fade.
 
 const E := preload("res://scripts/engrave.gd")
-const AREA := Rect2(40, 128, 300, 330)
-const MAX := 11
+const AREA := Rect2(40, 400, 300, 150)
+const MAX := 5
 
 var lines: Array = []   # [text, color]
 
@@ -26,5 +26,5 @@ func _draw() -> void:
 	for i in range(lines.size() - 1, -1, -1):
 		var age := lines.size() - 1 - i
 		var col: Color = lines[i][1]
-		draw_string(reg if age > 0 else Fonts.bold(), Vector2(AREA.position.x + 8, y), lines[i][0], HORIZONTAL_ALIGNMENT_LEFT, AREA.size.x - 16, 19, Color(col, 1.0 - age * 0.075))
+		draw_string(reg if age > 0 else Fonts.bold(), Vector2(AREA.position.x + 8, y), lines[i][0], HORIZONTAL_ALIGNMENT_LEFT, AREA.size.x - 16, 19, Color(col, 1.0 - age * 0.15))
 		y -= 28

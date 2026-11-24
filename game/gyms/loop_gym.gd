@@ -4,6 +4,7 @@ extends "res://gyms/swipe_gym.gd"
 
 const EnemyView := preload("res://views/enemy_view.gd")
 const CombatLog := preload("res://views/combat_log.gd")
+const StatSheet := preload("res://views/stat_sheet.gd")
 const ENEMY_C := Vector2(640, 400)
 
 var ct: CombatTuning
@@ -18,6 +19,7 @@ var enemy_def := {}
 var enemy_v: Node2D
 var hand: Node2D
 var log_v: Node2D
+var sheet: Node2D
 var phase := "rise"
 var ph_t := 0.0
 var _hand_k := 0.0
@@ -39,6 +41,9 @@ func _start() -> void:
 	log_v = CombatLog.new()
 	add_child(log_v)
 	move_child(log_v, hud.get_index() + 1)
+	sheet = StatSheet.new()
+	add_child(sheet)
+	move_child(sheet, log_v.get_index() + 1)
 	tpanel.bind(ct, "M03")
 	_apply_clear()
 	hero_hp = _hero_max()
@@ -50,8 +55,9 @@ func _start() -> void:
 
 func _clear_rects() -> Array:
 	var c := super._clear_rects()
-	c.append(_soft(Rect2(390, 22, 500, 100)))
-	c.append(_soft(CombatLog.AREA))
+	c.append(_soft(Rect2(380, 20, 520, 134)))
+	c.append(_soft(CombatLog.AREA.grow(6)))
+	c.append(_soft(StatSheet.AREA.grow(8)))
 	return c
 
 
@@ -79,11 +85,7 @@ func _spawn_enemy() -> void:
 	var types: Array = enemies["types"]
 	var d: Dictionary = types[rng.randi() % types.size()]
 	enemy_def = d
-	var mh := 1.0 + ct.depth_hp * (depth - 1)
-	var md := 1.0 + ct.depth_dmg * (depth - 1)
-	cur_enemy = {"hp": float(d["hp"]) * mh, "max_hp": float(d["hp"]) * mh, "dmg": float(d["dmg"]) * md,
-		"speed": float(d["speed"]), "armor": float(d["armor"]) * md, "crit": float(d["crit"]),
-		"block": float(d["block"]), "vamp": float(d["vamp"])}
+	cur_enemy = LoopMath.enemy_at(d, depth, ct)
 	enemy_v.set_shape(d["shape"])
 	enemy_v.visible = true
 	enemy_v.appear = 0.0
@@ -109,7 +111,11 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	ph_t += delta
 	_hand_k = maxf(0.0, _hand_k - delta * 7.0)
-	hand.position = Vector2(60, -50) * sin(_hand_k * PI)
+	hand.scale = Vector2.ONE * 0.8
+	hand.position = Vector2(0, 144) + Vector2(60, -50) * sin(_hand_k * PI)
+	var fighting := phase in ["rise", "fight"]
+	var hf: Dictionary = combat.f["hero"] if phase == "fight" else Combat.hero_from(_hero_stats(), hero_hp, ct)
+	sheet.set_data(hf, cur_enemy if fighting else {}, ct)
 	match phase:
 		"rise":
 			var k := clampf(ph_t / 0.45, 0.0, 1.0)
@@ -172,6 +178,8 @@ func _on_event(ev: Dictionary) -> void:
 			log_v.add("блок!" if not by_hero else "%s блокирует" % foe, E.INK_FADED)
 			sfx.play("block")
 		"heal":
+			if amt < 1:
+				return
 			fx.float_text("+%d" % amt, Vector2(1090, 150) if by_hero else ENEMY_C + Vector2(60, -220), E.INK, 30)
 			log_v.add(("вампиризм +%d" if by_hero else foe + " пьёт +%d") % amt, E.INK_FADED)
 		"death":

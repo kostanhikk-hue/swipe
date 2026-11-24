@@ -63,14 +63,14 @@ func _draw() -> void:
 			ItemArt.draw_item(self, s, cell.get_center(), 11, rng)
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		var nm: String = (it["name"] if not it.is_empty() else SLOT_NAMES[s]) + ("  +%d" % loadout.rank[s] if loadout.rank[s] > 0 else "")
-		draw_string(bold if r >= 2 else reg, Vector2(x + 48, y + 17), nm, HORIZONTAL_ALIGNMENT_LEFT, 160, 17, E.INK if not it.is_empty() else E.INK_FADED)
+		draw_string(bold if r >= 2 else reg, Vector2(x + 48, y + 17), nm, HORIZONTAL_ALIGNMENT_LEFT, 160, 17, Pal.RARITY_TEXT[r] if not it.is_empty() else E.INK_FADED)
 		if s == preview_slot and preview_text != "":
 			draw_colored_polygon(PackedVector2Array([Vector2(x - 14, y + 8), Vector2(x - 2, y + 18), Vector2(x - 14, y + 28)]), E.INK)
 			draw_string(bold, Vector2(x + 48, y + 34), preview_text, HORIZONTAL_ALIGNMENT_LEFT, 160, 15, E.INK_FADED)
 		else:
 			draw_string(reg, Vector2(x + 48, y + 34), SLOT_NAMES[s], HORIZONTAL_ALIGNMENT_LEFT, 70, 13, E.INK_FADED)
 			for i in r + 1:
-				draw_circle(Vector2(x + 128 + i * 9, y + 30), 2.6, E.CINNABAR if r == 3 else E.INK)
+				draw_circle(Vector2(x + 128 + i * 9, y + 30), 3.0, Pal.RARITY[r])
 		y += 46
 	# build power
 	var pk := 1.0 + 0.35 * _ease(_power_punch)
@@ -81,7 +81,7 @@ func _draw() -> void:
 	draw_string(bold, Vector2(x + 50, py), str(roundi(loadout.power())), HORIZONTAL_ALIGNMENT_RIGHT, 80, 26, E.INK)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if preview_text != "" and absf(preview_delta) >= 0.5:
-		draw_string(bold, Vector2(x + 134, py), ("+%d" if preview_delta > 0 else "−%d") % absi(roundi(preview_delta)), HORIZONTAL_ALIGNMENT_LEFT, 70, 22, E.INK if preview_delta > 0 else E.CINNABAR)
+		draw_string(bold, Vector2(x + 134, py), ("+%d" if preview_delta > 0 else "−%d") % absi(roundi(preview_delta)), HORIZONTAL_ALIGNMENT_LEFT, 70, 22, Color("#2E7D32") if preview_delta > 0 else E.CINNABAR)
 
 
 func _ease(t: float) -> float:

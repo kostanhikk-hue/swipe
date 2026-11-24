@@ -43,34 +43,38 @@ func _draw() -> void:
 	var sh := r
 	sh.position += Vector2(10, 12)
 	E.hatch(self, E.rect_poly(sh), 0.8, 3.0, 1.0, rng)
+	var rr := int(item["rarity"])
 	draw_rect(r, E.PAPER_LIGHT)
-	ItemArt.rarity_frame(self, r.grow(-8), int(item["rarity"]), 1.2)
+	if rr > 0:   # rarity wash over the engraving area
+		draw_rect(Rect2(r.position + Vector2(8, 8), Vector2(SIZE.x - 16, 200)), Color(Pal.RARITY[rr], 0.18))
+	ItemArt.rarity_frame(self, r.grow(-8), rr, 1.4)
 	draw_rect(r.grow(-15), E.INK, false, 1.0)
 	ItemArt.draw_item(self, item["slot"], Vector2(0, -128), 62, rng, true)
 	var reg := Fonts.regular()
 	var bold := Fonts.bold()
 	var x0 := r.position.x
-	draw_string(bold, Vector2(x0, -24), item["name"], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 32, E.INK)
+	draw_string(bold, Vector2(x0, -24), item["name"], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 32, Pal.RARITY_TEXT[rr])
 	var tags: Array = item.get("tags", [])
 	var sub := rarity_name + ("" if tags.is_empty() else " · " + " · ".join(tags))
-	draw_string(reg, Vector2(x0, 0), sub, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 19, E.CINNABAR if int(item["rarity"]) == 3 else E.INK_FADED)
+	draw_string(bold, Vector2(x0, 0), sub, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 19, Pal.RARITY_TEXT[rr])
 	E.stroke(self, Vector2(x0 + 28, 14), Vector2(-x0 - 28, 14), 1.4, rng)
 	var y := 44.0
 	for row in rows:
 		var b = row[1]
 		var a = row[2]
-		draw_string(reg, Vector2(x0 + 30, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, 120, 21, E.INK)
-		draw_string(bold, Vector2(x0 + 120, y), "%s → %s" % [_fmt(row[0], b), _fmt(row[0], a)], HORIZONTAL_ALIGNMENT_RIGHT, 120, 21, E.INK)
+		Pal.stat_icon(self, row[0], Vector2(x0 + 36, y - 7), 8.0)
+		draw_string(bold, Vector2(x0 + 50, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, 110, 20, Pal.stat(row[0]))
+		draw_string(bold, Vector2(x0 + 140, y), "%s → %s" % [_fmt(row[0], b), _fmt(row[0], a)], HORIZONTAL_ALIGNMENT_RIGHT, 104, 20, E.INK)
 		var d := (0.0 if a == null else float(a)) - (0.0 if b == null else float(b))
 		if absf(d) > 0.001:
-			draw_string(bold, Vector2(x0 + 244, y), ("+" if d > 0 else "−") + _fmt(row[0], absf(d)), HORIZONTAL_ALIGNMENT_RIGHT, 50, 21, E.INK if d > 0 else E.CINNABAR)
+			draw_string(bold, Vector2(x0 + 244, y), ("+" if d > 0 else "−") + _fmt(row[0], absf(d)), HORIZONTAL_ALIGNMENT_RIGHT, 50, 21, Color("#2E7D32") if d > 0 else E.CINNABAR)
 		y += 27.0
 	# build power: the one number that sums it up
 	var dp := power_after - power_before
 	E.stroke(self, Vector2(x0 + 28, r.end.y - 52), Vector2(-x0 - 28, r.end.y - 52), 1.0, rng)
 	draw_string(reg, Vector2(x0 + 30, r.end.y - 26), "сила", HORIZONTAL_ALIGNMENT_LEFT, 80, 21, E.INK)
 	draw_string(bold, Vector2(x0 + 80, r.end.y - 26), "%d → %d" % [roundi(power_before), roundi(power_after)], HORIZONTAL_ALIGNMENT_RIGHT, 160, 23, E.INK)
-	draw_string(bold, Vector2(x0 + 244, r.end.y - 26), ("+%d" if dp >= 0 else "−%d") % absi(roundi(dp)), HORIZONTAL_ALIGNMENT_RIGHT, 50, 23, E.INK if dp >= 0 else E.CINNABAR)
+	draw_string(bold, Vector2(x0 + 244, r.end.y - 26), ("+%d" if dp >= 0 else "−%d") % absi(roundi(dp)), HORIZONTAL_ALIGNMENT_RIGHT, 50, 23, Color("#2E7D32") if dp >= 0 else E.CINNABAR)
 	if stamp_dir != 0 and stamp_p > 0.05:
 		_stamp(STAMPS.get(stamp_dir, ""), stamp_p)
 

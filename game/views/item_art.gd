@@ -48,18 +48,18 @@ static func draw_item(ci: CanvasItem, slot: String, c: Vector2, s: float, rng: R
 		E.stroke(ci, c + Vector2(s, -s), c + Vector2(0, -s * 0.55), w, rng)
 
 
-## Rarity = frame weight + corners; cinnabar only for legendary (ART_BIBLE).
+## Rarity = colour (Pal.RARITY) + frame weight + corners.
 static func rarity_frame(ci: CanvasItem, c: Rect2, r: int, k := 1.0) -> void:
+	var col: Color = Pal.RARITY[r]
 	match r:
 		0:
-			ci.draw_rect(c, E.INK_FADED, false, 1.0 * k)
+			ci.draw_rect(c, col, false, 1.2 * k)
 		1:
-			ci.draw_rect(c, E.INK, false, 1.2 * k)
-			ci.draw_rect(c.grow(-3 * k), E.INK, false, 1.0 * k)
+			ci.draw_rect(c, col, false, 2.4 * k)
+			ci.draw_rect(c.grow(-4 * k), col, false, 1.0 * k)
 		_:
-			var col := E.CINNABAR if r == 3 else E.INK
-			ci.draw_rect(c, col, false, (3.0 if r == 3 else 2.6) * k)
-			ci.draw_rect(c.grow(-4 * k), E.INK, false, 1.2 * k)
+			ci.draw_rect(c, col, false, 3.4 * k)
+			ci.draw_rect(c.grow(-5 * k), E.INK, false, 1.0 * k)
 			var q := 3.5 * k
 			for p in [c.position, Vector2(c.end.x, c.position.y), c.end, Vector2(c.position.x, c.end.y)]:
 				ci.draw_rect(Rect2(p - Vector2(q, q), Vector2(q, q) * 2), col)

@@ -25,6 +25,7 @@ TEST: export PATH=$HOME/.local/bin:$PATH && cd game && godot --headless --path .
 BUILD: — (шаблоны экспорта Windows поставим к первой сборке)
 CAPTURE: export PATH=$HOME/.local/bin:$PATH && cd game && xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --audio-driver Dummy --resolution 1280x720 --fixed-fps 60 --script res://tools/capture.gd -- --out ../.studioigor/captures/hello --duration 4 --every 0.5 --inputs tools/inputs_hello.json
 EDITOR: edit.bat (на Windows)
+BALANCE: export PATH=$HOME/.local/bin:$PATH && cd game && godot --headless --path . -s res://tools/balance_sim.gd -- --runs=200 [--policy=melt] [--set=depth_hp:0.14]
 
 ## Pitfalls
 - VM: без `--audio-driver Dummy` ALSA сыпет ошибки (безвредно).

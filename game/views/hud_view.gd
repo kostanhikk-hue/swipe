@@ -57,7 +57,7 @@ func _draw() -> void:
 	if enemy_name != "":
 		draw_string(bold, Vector2(390, 60), enemy_name, HORIZONTAL_ALIGNMENT_CENTER, 500, 36, E.INK)
 		_bar(Rect2(490, 74, 300, 16), enemy_hp / maxf(1.0, enemy_hp_max))
-		draw_string(reg, Vector2(490, 112), "%d / %d" % [ceili(enemy_hp), roundi(enemy_hp_max)], HORIZONTAL_ALIGNMENT_CENTER, 300, 19, E.INK)
+		draw_string(reg, Vector2(490, 112), "%d / %d" % [ceili(enemy_hp), roundi(enemy_hp_max)], HORIZONTAL_ALIGNMENT_CENTER, 300, 17, E.INK)
 	if banner != "":
 		draw_rect(Rect2(340, 300, 600, 120), Color(E.PAPER_LIGHT, 0.95))
 		draw_rect(Rect2(340, 300, 600, 120), E.INK, false, 4.0)
