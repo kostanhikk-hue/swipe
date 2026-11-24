@@ -31,7 +31,7 @@ func _ready() -> void:
 	overlay.draw.connect(_draw_overlay)
 	_sfx = AudioStreamPlayer.new()
 	add_child(_sfx)
-	var clear := [_soft(Rect2(270, 40, 740, 230)), _soft(Rect2(380, 260, 520, 340))]
+	var clear := [_soft(Rect2(270, 40, 740, 230)), _soft(Rect2(380, 260, 520, 380))]
 	back.clear = clear
 	front.clear = clear
 	_layout()
@@ -40,9 +40,10 @@ func _ready() -> void:
 func _layout() -> void:
 	buttons.clear()
 	if screen == "main":
-		var items := [["Новый забег", "run"], ["Святилище", "shrine"], ["Выход", "quit"]]
+		var tips_label := "Подсказки: " + ("вкл" if bool(save.get("tips_on", true)) else "выкл")
+		var items := [["Новый забег", "run"], ["Святилище", "shrine"], [tips_label, "tips"], ["Выход", "quit"]]
 		for i in items.size():
-			buttons.append({"rect": Rect2(440, 300 + i * 80, 400, 62), "label": "%d · %s" % [i + 1, items[i][0]], "do": items[i][1]})
+			buttons.append({"rect": Rect2(440, 290 + i * 72, 400, 58), "label": "%d · %s" % [i + 1, items[i][0]], "do": items[i][1]})
 	else:
 		var ups: Array = meta["upgrades"]
 		for i in ups.size():
@@ -112,6 +113,14 @@ func _do(what: String) -> void:
 			_layout()
 		"quit":
 			get_tree().quit()
+		"tips":
+			var on := not bool(save.get("tips_on", true))
+			save["tips_on"] = on
+			if on:
+				save["tips"] = []   # turning tips back on shows them all again
+			Save.store(save)
+			_flash = "подсказки включены — покажутся заново" if on else "подсказки выключены"
+			_layout()
 		_:
 			if what.begins_with("buy:"):
 				_buy(int(what.get_slice(":", 1)))

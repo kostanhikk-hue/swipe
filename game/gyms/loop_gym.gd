@@ -6,6 +6,7 @@ extends "res://gyms/swipe_gym.gd"
 const EnemyView := preload("res://views/enemy_view.gd")
 const CombatLog := preload("res://views/combat_log.gd")
 const StatSheet := preload("res://views/stat_sheet.gd")
+const TipView := preload("res://views/tip_view.gd")
 const ENEMY_C := Vector2(640, 400)
 
 var ct: CombatTuning
@@ -42,6 +43,9 @@ var meta_speed := 1.0
 var haste := 1.0
 var omen := false
 var run := {"kills": 0, "bosses": 0, "coins": 0, "killer": ""}
+var onboarding := {}
+var tip: Node2D
+var drops_seen := 0
 
 
 func _start() -> void:
@@ -54,6 +58,11 @@ func _start() -> void:
 	save = Save.load_data()
 	best = int(save["best_depth"])
 	curses = JSON.parse_string(FileAccess.get_file_as_string("res://data/m05/curses.json"))
+	onboarding = JSON.parse_string(FileAccess.get_file_as_string("res://data/onboarding/tips.json"))
+	if not save.has("tips"):
+		save["tips"] = []
+	if not save.has("tips_on"):
+		save["tips_on"] = true
 	meta = JSON.parse_string(FileAccess.get_file_as_string("res://data/m08/meta.json"))
 	for u in meta["upgrades"]:   # M08: only speed and convenience
 		var lv := Save.upgrade_level(save, u["id"])
@@ -84,6 +93,9 @@ func _start() -> void:
 	add_child(shop_overlay)
 	move_child(shop_overlay, fx.get_index())
 	shop_overlay.draw.connect(_draw_shop_overlay)
+	tip = TipView.new()
+	add_child(tip)
+	tip.visible = false
 	tpanel.bind(ct, "M03")
 	tuning.rise_time /= haste if haste > 1.0 else 1.0
 	loadout = Loadout.new(loadout.econ, {}, ct)   # the run starts naked (decision #27)
@@ -155,6 +167,10 @@ func _spawn_enemy() -> void:
 		var nb: Dictionary = enemies["bosses"][(depth / every) % (enemies["bosses"] as Array).size()]
 		log_v.add("предзнаменование: %s — %s" % [nb["name"], nb["special"]], Pal.RARITY_TEXT[3])
 	if is_boss:
+		_tip("boss")
+	elif depth % every == every - 2:
+		_tip("boss_soon")
+	if is_boss:
 		fx.float_text("БОСС", Vector2(640, 330), E.CINNABAR, 96)
 		_shake(1.5)
 	sfx.play("rise", 0.5 if is_boss else 0.7)
@@ -187,6 +203,7 @@ func _process(delta: float) -> void:
 				combat = Combat.new(Combat.hero_from(_hero_stats(), hero_hp, ct), cur_enemy, ct, seed_value * 1000 + depth)
 				if is_boss:
 					combat.limit = ct.time_limit * ct.boss_time_mult
+				_tip("fight")
 				phase = "fight"
 				ph_t = 0.0
 		"fight":
@@ -278,6 +295,7 @@ func _impact(stop_ms: float, shake_px: float) -> void:
 
 
 func _win() -> void:
+	_tip_done(["fight", "boss", "boss_soon"])
 	var rw: Dictionary = enemies["boss_reward"]
 	hero_hp = minf(_hero_max(), combat.f["hero"]["hp"] + _hero_max() * (float(rw["heal"]) if is_boss else ct.heal_after_win))
 	drop_min_rarity = int(rw["min_rarity"]) if is_boss else 0
@@ -332,14 +350,17 @@ func _lose(title: String) -> void:
 	_shake(2.0)
 	if record:
 		save["best_depth"] = depth
+	_tip_done(["fight", "boss", "boss_soon"])
 	Save.store(save)
 	phase = "dead"
+	_tip("death")
 	hud.actions = [{"key": "R", "label": "новый забег", "cost": 0, "ok": true, "do": "restart"},
 		{"key": "M", "label": "в меню", "cost": 0, "ok": true, "do": "menu"}]
 	hud.queue_redraw()
 
 
 func _on_card_done() -> void:
+	_tip_done(["drop", "compare", "sidegrade", "tags", "cursed", "coins"])
 	card.visible = false
 	swipe_enabled = false
 	hud.show_hints = false
@@ -358,12 +379,37 @@ func _next_card() -> void:
 	super._next_card()
 	rerolls = 0
 	drop_min_rarity = 0
+	drops_seen += 1
+	var mixed := false
+	var plus := false
+	var minus := false
+	for row in loadout.compare(item):
+		var d := (0.0 if row[2] == null else float(row[2])) - (0.0 if row[1] == null else float(row[1]))
+		plus = plus or d > 0.001
+		minus = minus or d < -0.001
+	mixed = plus and minus
+	if bool(item.get("cursed", false)):
+		_tip("cursed")
+	_tip("drop")
+	if drops_seen >= 2:
+		_tip("compare")
+	if mixed:
+		_tip("sidegrade")
+	if not (item.get("tags", []) as Array).is_empty():
+		_tip("tags")
 	_refresh_actions()
 
 
 func _pick_item() -> Dictionary:
 	if from_shop:
 		return item
+	var gi := depth - 2   # first drop comes after the first win
+	var guided: Array = onboarding["guided_drops"]
+	if int(save["runs"]) < int(onboarding["guided_runs"]) and gi >= 0 and gi < guided.size():
+		var g: Dictionary = guided[gi]
+		var gt := ItemGen.roll(depth, rng, loot, affixes, 0, g["type"], 0)
+		gt["tags"] = g["tags"].duplicate()
+		return gt
 	var it := ItemGen.roll(depth, rng, loot, affixes, drop_min_rarity)
 	if "--cursed" in OS.get_cmdline_user_args():   # debug: every drop is a cursed relic
 		return ItemGen.curse(it, depth, rng, curses)
@@ -387,6 +433,8 @@ func _refresh_actions() -> void:
 		acts.append({"key": "Space", "label": "уйти", "cost": 0, "ok": true, "do": "leave"})
 	hud.actions = acts
 	hud.queue_redraw()
+	if phase == "drop" and acts.any(func(x): return x["ok"]):
+		_tip("coins")
 
 
 func _do_action(what: String) -> void:
@@ -463,11 +511,13 @@ func _open_shop() -> void:
 	hud.enemy_name = ""
 	hud.banner = ""
 	log_v.add("— торговец: выберите предмет или уйдите", Pal.stat("алчность"))
+	_tip("shop")
 	_refresh_actions()
 	shop_overlay.queue_redraw()
 
 
 func _close_shop() -> void:
+	_tip_done(["shop"])
 	for n in shop_cards:
 		n.queue_free()
 	shop_cards.clear()
@@ -512,6 +562,10 @@ func _draw_shop_overlay() -> void:
 
 
 func _unhandled_input(e: InputEvent) -> void:
+	if tip.visible and e is InputEventMouseButton and e.pressed and tip.rect().has_point(e.position):
+		tip.hide_tip()
+		get_viewport().set_input_as_handled()
+		return
 	if e is InputEventKey and e.pressed and not e.echo and e.physical_keycode == KEY_ESCAPE:
 		Engine.time_scale = 1.0
 		get_tree().change_scene_to_file("res://scenes/ui/menu.tscn")
@@ -541,3 +595,20 @@ func _unhandled_input(e: InputEvent) -> void:
 
 func _on_sold(price: int) -> void:
 	run["coins"] += price
+
+
+# ------------------------------------------------------------- onboarding
+
+func _tip(id: String) -> void:
+	if not bool(save.get("tips_on", true)) or id in save["tips"] or tip.visible:
+		return
+	if not onboarding["tips"].has(id):
+		return
+	tip.show_tip(id, onboarding["tips"][id])
+	save["tips"].append(id)
+	Save.store(save)
+
+
+func _tip_done(ids: Array) -> void:
+	if tip.visible and tip.id in ids:
+		tip.hide_tip()

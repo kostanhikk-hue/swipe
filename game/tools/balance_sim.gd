@@ -1,6 +1,8 @@
 extends SceneTree
-## Balance check: N runs of a greedy player (equip if build power grows, else sell).
-## godot --headless --path . -s res://tools/balance_sim.gd -- [--runs=200] [--policy=greedy|melt]
+## Balance check: N runs of a simulated player.
+## greedy — equip if build power grows, else sell, heal below 50%;
+## smart — also sharpens/melts into strong slots, heals before bosses, buys the best shop item.
+## godot --headless --path . -s res://tools/balance_sim.gd -- [--runs=200] [--policy=greedy|smart] [--set=k:v,...]
 ## Prints death-depth percentiles and fight length by depth.
 
 func _initialize() -> void:
@@ -32,6 +34,10 @@ func _initialize() -> void:
 	var reached := {10: 0, 20: 0}
 	var run_secs := []
 	var times := {}
+	var boss_times := []
+	var coins_at := {5: [], 10: [], 15: []}
+	var shop_buys := 0
+	var shops := 0
 	for r in runs:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = 1000 + r
@@ -60,8 +66,11 @@ func _initialize() -> void:
 				c.limit = ct.time_limit * ct.boss_time_mult
 			c.advance(200.0)
 			secs += c.time + 4.0   # + rise, death, swipe
-			var b := depth / 5 * 5
-			times[b] = times.get(b, []) + [c.time]
+			if boss:
+				boss_times.append(c.time)
+			else:
+				var b := depth / 5 * 5
+				times[b] = times.get(b, []) + [c.time]
 			if c.winner != "hero":
 				if depth <= ct.tutorial_depth:
 					tutorial_deaths += 1
@@ -70,11 +79,18 @@ func _initialize() -> void:
 				boss_pass[depth] += 1
 			var rw: Dictionary = enemies["boss_reward"]
 			hp = minf(maxhp, float(c.f["hero"]["hp"]) + maxhp * (float(rw["heal"]) if boss else ct.heal_after_win))
-			lo.coins += roundi((5 + depth) * (float(rw["coins_mult"]) if boss else 1.0))
-			# policy: heal below 50% if affordable (twice at most)
-			for _i in 2:
+			var cr: Array = enemies["coins"]
+			var greed := float(stats.get("алчность", 0.0))
+			lo.coins += roundi((rng.randi_range(int(cr[0]), int(cr[1])) + depth) * (1.0 + greed / 100.0) * (float(rw["coins_mult"]) if boss else 1.0))
+			if depth in coins_at:
+				coins_at[depth].append(lo.coins)
+			# heal: greedy below 50%; smart below 60%, and to full-ish before a boss
+			var every := int(enemies["boss_every"])
+			var pre_boss := (depth + 1) % every == 0
+			var heal_at := 0.5 if policy == "greedy" else (0.9 if pre_boss else 0.6)
+			for _i in 3:
 				var hc := Formulas.heal_cost(depth + 1, spend["heal"])
-				if hp < maxhp * 0.5 and lo.coins >= hc:
+				if hp < maxhp * heal_at and lo.coins >= hc:
 					lo.coins -= hc
 					hp = minf(maxhp, hp + maxhp * float(spend["heal"]["pct"]))
 			var it := ItemGen.maybe_curse(ItemGen.roll(depth, rng, loot, aff, int(rw["min_rarity"]) if boss else 0), depth, rng, curses, boss)
@@ -82,8 +98,28 @@ func _initialize() -> void:
 				lo.equip(it)
 			elif policy == "melt":
 				lo.melt(it)
+			elif policy == "smart" and lo.power_if_melted(it) - lo.power() > 0.04 * lo.power():
+				lo.melt(it)   # sharpening a strong slot beats a few coins
 			else:
 				lo.sell(it)
+			# shop after every N-th win
+			if depth % int(spend["shop"]["every"]) == 0:
+				shops += 1
+				if policy == "smart":
+					var best_it := {}
+					var best_gain := 0.0
+					for _k in int(spend["shop"]["items"]):
+						var s_it := ItemGen.roll(depth + 1, rng, loot, aff, int(spend["shop"]["min_rarity"]))
+						var price := roundi(lo.sell_price(s_it) * float(spend["shop"]["price_mult"]))
+						var gain := lo.power_if_equipped(s_it) - lo.power()
+						if lo.can_equip(s_it) and gain > best_gain and lo.coins - price >= Formulas.heal_cost(depth, spend["heal"]):
+							best_gain = gain
+							best_it = s_it
+							best_it["price"] = price
+					if not best_it.is_empty():
+						lo.coins -= int(best_it["price"])
+						lo.equip(best_it)
+						shop_buys += 1
 			depth += 1
 		deaths.append(depth)
 		for tg in lo.tag_counts().values():
@@ -100,6 +136,12 @@ func _initialize() -> void:
 		run_secs[run_secs.size() / 2] / 60.0, legend_at[10] / maxf(1.0, reached[10]), legend_at[20] / maxf(1.0, reached[20])])
 	print("runs with an active resonance at death: %d%%" % roundi(100.0 * res_runs / runs))
 	print("boss pass rate: 15 → %d/%d, 30 → %d/%d, 45 → %d/%d" % [boss_pass[15], boss_seen[15], boss_pass[30], boss_seen[30], boss_pass[45], boss_seen[45]])
+	var avg := func(a: Array) -> float:
+		var s := 0.0
+		for x in a:
+			s += float(x)
+		return s / maxf(1.0, a.size())
+	print("coins after win: d5 %.0f · d10 %.0f · d15 %.0f · shop buys %d/%d · boss fight avg %.1f s" % [avg.call(coins_at[5]), avg.call(coins_at[10]), avg.call(coins_at[15]), shop_buys, shops, avg.call(boss_times)])
 	var keys := times.keys()
 	keys.sort()
 	var line := "fight seconds by depth: "
