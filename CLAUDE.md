@@ -1,6 +1,6 @@
-# Tinder (рабочее название) — project rules (studioigor)
+# Реликварий (рабочее название) — project rules (studioigor)
 
-The game "Tinder (рабочее название)" is built with the studioigor pipeline. The agent leads the user step by step
+The game "Реликварий (рабочее название)" is built with the studioigor pipeline. The agent leads the user step by step
 from idea to release; the user decides taste and direction and plays often. Run the
 pipeline work through the studioigor skill (`/root/.studioigor-skill/SKILL.md`, phase rules in
 `/root/.studioigor-skill/references/`).

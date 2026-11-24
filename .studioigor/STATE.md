@@ -1,7 +1,7 @@
 # studioigor — Реликварий (рабочее название)
 
-PROJECT: Tinder (рабочее название)
-PHASE: 0 — Start
+PROJECT: Реликварий (рабочее название)
+PHASE: 2 — Style
 UPDATED: 2026-11-24 16:32
 
 ## Now
