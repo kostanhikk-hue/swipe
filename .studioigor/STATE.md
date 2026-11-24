@@ -1,7 +1,7 @@
 # studioigor — Реликварий (рабочее название)
 
 PROJECT: Реликварий (рабочее название)
-PHASE: 4 — Environment
+PHASE: 5 — Assets and look-dev
 UPDATED: 2026-11-24 13:01
 
 ## Now
