@@ -13,6 +13,7 @@ func _ready() -> void:
 		_streams[n] = load("res://audio/sfx/%s.wav" % n)
 	for i in 8:
 		var p := AudioStreamPlayer.new()
+		p.bus = "SFX"
 		add_child(p)
 		_pool.append(p)
 

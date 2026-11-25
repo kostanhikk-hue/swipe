@@ -6,6 +6,10 @@ config/name="Реликварий"
 run/main_scene="res://scenes/ui/menu.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
+[autoload]
+
+Game="*res://systems/game.gd"
+
 [debug]
 gdscript/warnings/exclude_addons=true
 

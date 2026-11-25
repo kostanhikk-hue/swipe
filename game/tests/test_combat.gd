@@ -45,7 +45,8 @@ func test_penetration_and_thorns() -> void:
 
 func test_resonance_levels() -> void:
 	var lo := Loadout.new({"sell_base": [1, 1, 1, 1], "sell_per_ilvl": 0.0, "melt_bonus": 0.1}, {})
-	for s in ["weapon", "helm", "armor"]:
+	for s in ["weapon", "helm"]:
 		lo.equipped[s] = {"slot": s, "stats": {}, "tags": ["кровь"]}
+	var res: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/m04/resonance.json"))
 	assert_eq(lo.resonance_level(int(lo.tag_counts()["кровь"])), 1)
-	assert_almost_eq(float(lo.total_stats()["вампиризм"]), 3.0, 0.001)
+	assert_almost_eq(float(lo.total_stats()["вампиризм"]), float(res["tags"]["кровь"]["v"][0]), 0.001)

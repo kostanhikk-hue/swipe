@@ -1,6 +1,24 @@
 {
-  "heal": {"pct": 0.3, "base": 6, "per_depth": 1.2},
-  "reroll": {"base": 4, "per_depth": 0.8, "per_use": 3},
-  "sharpen": {"base": 12, "per_rank": 10, "per_depth": 0.5},
-  "shop": {"every": 5, "items": 3, "min_rarity": 1, "price_mult": 2.5}
+ "heal": {
+  "pct": 0.3,
+  "base": 6,
+  "per_depth": 1.6
+ },
+ "reroll": {
+  "base": 4,
+  "per_depth": 0.8,
+  "per_use": 3
+ },
+ "sharpen": {
+  "base": 14,
+  "per_rank": 12,
+  "per_rank2": 4,
+  "per_depth": 0.5
+ },
+ "shop": {
+  "every": 5,
+  "items": 3,
+  "min_rarity": 1,
+  "price_mult": 2.8
+ }
 }

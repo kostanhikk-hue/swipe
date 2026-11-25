@@ -4,8 +4,9 @@ extends RefCounted
 ## Build power uses the same formulas as combat (CombatTuning): √(DPS × effective HP).
 
 const SLOTS := ["weapon", "shield", "helm", "armor", "gloves", "boots", "belt", "amulet", "ring1", "ring2"]
-const STAT_ORDER := ["урон", "скорость", "проворство", "крит", "сила крита", "пробивание", "броня", "блок",
-	"шипы", "вампиризм", "регенерация", "жизнь", "алчность"]
+const STAT_ORDER := ["урон", "скорость", "проворство", "крит", "сила крита", "пробивание", "яд", "натиск", "казнь",
+	"ярость", "броня", "блок", "ответный удар", "оберег", "шипы", "вампиризм", "регенерация", "жизнь", "передышка",
+	"уязвимость", "алчность", "удача"]
 
 var equipped := {}
 var rank := {}
@@ -13,6 +14,8 @@ var coins := 0
 var econ := {}
 var ct: CombatTuning
 var resonance := {}   # data/m04/resonance.json; empty = off
+var ring_pick := ""   # player's choice which ring to replace when both are worn ("" = auto)
+var last_refund := 0  # coins from the trade-in of the replaced item on the last equip
 
 
 func _init(econ_: Dictionary, start: Dictionary, tuning: CombatTuning = null) -> void:
@@ -32,6 +35,8 @@ func target_slot(item: Dictionary) -> String:
 	for r in ["ring1", "ring2"]:
 		if equipped[r].is_empty():
 			return r
+	if ring_pick != "" and not is_locked(ring_pick):
+		return ring_pick
 	if is_locked("ring1") != is_locked("ring2"):
 		return "ring2" if is_locked("ring1") else "ring1"
 	return "ring1" if _power_of_slot_swap("ring1", {}) >= _power_of_slot_swap("ring2", {}) else "ring2"
@@ -50,13 +55,17 @@ func mult(slot: String) -> float:
 	return 1.0 + float(econ["melt_bonus"]) * rank[slot]
 
 
+## Sharpening multiplies an item's stats. It never speeds up a weapon and never grows the drawbacks
+## of a normal item (Павеза's −проворство); a cursed relic's curse does grow (M05 rule).
 static func scaled(it: Dictionary, m: float) -> Dictionary:
 	var out := {}
 	if it.is_empty():
 		return out
+	var cursed := bool(it.get("cursed", false))
 	for k in it["stats"]:
 		var v := float(it["stats"][k])
-		out[k] = v if k == "скорость" else v * m   # sharpening never speeds up a weapon; curses grow too
+		var bad: bool = v < 0.0 or k == "уязвимость"
+		out[k] = v if k == "скорость" or (bad and not cursed) else v * m
 	return out
 
 
@@ -134,22 +143,27 @@ func resonance_change(item: Dictionary) -> String:
 	return " · ".join(parts)
 
 
-func power_of_stats(stats: Dictionary) -> float:
-	var h := Combat.hero_from(stats, 0.0, ct)
-	# reference enemy: armor 20, ~1 hit/s — so penetration, thorns and regen count too
-	var ref_armor := 20.0 * (1.0 - minf(80.0, h["pen"]) / 100.0)
-	var d := Formulas.dps(h["dmg"], h["speed"], h["crit"], ct.crit_mult + h["critdmg"] / 100.0) * ct.armor_k / (ref_armor + ct.armor_k)
-	d += h["thorns"]
-	var e: float = Formulas.ehp(h["max_hp"] + h["regen"] * 8.0, h["armor"], h["block"], ct.armor_k, ct.block_cap) * (1.0 + h["vamp"] / 50.0)
-	return Formulas.power(d, e)
+## All relic flags of the worn items (third_crit, overheal, …) for the fighter.
+func flags(override_slot := "", override_item := {}) -> Array:
+	var out := []
+	for slot in SLOTS:
+		var it: Dictionary = override_item if slot == override_slot else equipped[slot]
+		for fl in it.get("flags", []):
+			if fl not in out:
+				out.append(fl)
+	return out
+
+
+func power_of_stats(stats: Dictionary, fl: Array = []) -> float:
+	return Formulas.build_power(Combat.hero_from(stats, 0.0, ct, fl), ct)
 
 
 func power() -> float:
-	return power_of_stats(total_stats())
+	return power_of_stats(total_stats(), flags())
 
 
 func _power_of_slot_swap(slot: String, item: Dictionary) -> float:
-	return power_of_stats(total_stats(slot, item))
+	return power_of_stats(total_stats(slot, item), flags(slot, item))
 
 
 func power_if_equipped(item: Dictionary) -> float:
@@ -158,7 +172,7 @@ func power_if_equipped(item: Dictionary) -> float:
 
 func power_if_melted(item: Dictionary) -> float:
 	var s := target_slot(item)
-	return power_of_stats(total_stats(s, equipped[s], mult(s) + float(econ["melt_bonus"])))
+	return power_of_stats(total_stats(s, equipped[s], mult(s) + float(econ["melt_bonus"])), flags())
 
 
 ## Rows [stat, before|null, after|null] for the card: equipped (with sharpening) vs new.
@@ -174,14 +188,35 @@ func compare(item: Dictionary) -> Array:
 
 
 func sell_price(item: Dictionary) -> int:
-	var greed := float(total_stats().get("алчность", 0.0))
+	var greed := maxf(-90.0, float(total_stats().get("алчность", 0.0)))
 	return roundi(Formulas.sell_price(int(item["rarity"]), int(item.get("ilvl", 1)), econ["sell_base"], float(econ["sell_per_ilvl"])) * (1.0 + greed / 100.0))
+
+
+## Coins the currently worn item in the target slot brings when it is replaced (trade-in).
+func trade_in_value(item: Dictionary) -> int:
+	var old: Dictionary = equipped[target_slot(item)]
+	if old.is_empty():
+		return 0
+	return roundi(sell_price(old) * float(econ.get("trade_in", 0.0)))
 
 
 func equip(item: Dictionary) -> String:
 	var s := target_slot(item)
+	last_refund = trade_in_value(item)
+	coins += last_refund
 	equipped[s] = item
+	ring_pick = ""
 	return s
+
+
+## The build's most common tag (for tag-biased drops); "" when no tags.
+func top_tag() -> String:
+	var c := tag_counts()
+	var best := ""
+	for tg in c:
+		if best == "" or int(c[tg]) > int(c[best]):
+			best = tg
+	return best
 
 
 func sell(item: Dictionary) -> int:

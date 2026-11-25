@@ -54,7 +54,7 @@ func test_boss_every_15() -> void:
 
 func test_save_migrates_v1() -> void:
 	var d := Save._migrate({"schema": 1, "best_depth": 12})
-	assert_eq(int(d["schema"]), 2)
+	assert_eq(int(d["schema"]), Save.SCHEMA_VERSION)
 	assert_eq(int(d["best_depth"]), 12)
 	assert_eq(int(d["souls"]), 0)
 

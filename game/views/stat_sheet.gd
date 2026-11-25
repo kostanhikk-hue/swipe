@@ -5,7 +5,9 @@ extends Node2D
 const E := preload("res://scripts/engrave.gd")
 const AREA := Rect2(40, 124, 300, 300)
 const ORDER := ["урон", "скорость", "крит", "броня", "блок", "вампиризм", "жизнь"]
-const EXTRA := {"critdmg": "сила крита", "pen": "пробивание", "thorns": "шипы", "regen": "регенерация", "greed": "алчность"}
+const EXTRA := {"critdmg": "сила крита", "pen": "пробивание", "poison": "яд", "onset": "натиск", "execute": "казнь",
+	"fury": "ярость", "riposte": "ответный удар", "ward": "оберег", "thorns": "шипы", "regen": "регенерация",
+	"rest": "передышка", "vuln": "уязвимость", "greed": "алчность", "luck": "удача"}
 
 var hero := {}       # Combat.hero_from(...) dict
 var enemy := {}      # current enemy fighter dict or {}
@@ -40,20 +42,22 @@ func _draw() -> void:
 	var x := AREA.position.x + 8
 	var y := AREA.position.y + 20
 	draw_string(bold, Vector2(x, y), "герой", HORIZONTAL_ALIGNMENT_LEFT, 120, 21, E.INK)
-	draw_string(bold, Vector2(x + 110, y), "≈ %d урона/с" % roundi(dps(hero)), HORIZONTAL_ALIGNMENT_RIGHT, 170, 21, Pal.stat("урон"))
+	draw_string(bold, Vector2(x + 110, y), "≈ %d урона/с" % roundi(dps(hero)), HORIZONTAL_ALIGNMENT_RIGHT, 170, 21, Pal.text("урон"))
 	y += 30
 	var shown := ORDER.duplicate()
 	for key in EXTRA:
-		if float(hero.get(key, 0.0)) > 0.0:
+		if absf(float(hero.get(key, 0.0))) > 0.001:
 			shown.append(EXTRA[key])
-	var step := 24.0 if shown.size() <= 9 else 21.0
+	var room := AREA.end.y - y - (24.0 if not enemy.is_empty() else 0.0)
+	var step := clampf(room / shown.size(), 15.0, 24.0)
+	var fs := 17 if step >= 20.0 else 15
 	for s in shown:
 		var v := _val(s)
 		var note := _note(s)
-		Pal.stat_icon(self, s, Vector2(x + 8, y - 6), 7.5)
-		draw_string(bold, Vector2(x + 22, y), s, HORIZONTAL_ALIGNMENT_LEFT, 100, 17, Pal.stat(s))
-		draw_string(bold, Vector2(x + 112, y), v, HORIZONTAL_ALIGNMENT_LEFT, 56, 17, E.INK)
-		draw_string(reg, Vector2(x + 160, y), note, HORIZONTAL_ALIGNMENT_LEFT, 135, 15, E.INK_FADED)
+		Pal.stat_icon(self, s, Vector2(x + 8, y - 5), 7.0 if fs == 17 else 6.0)
+		draw_string(bold, Vector2(x + 22, y), s, HORIZONTAL_ALIGNMENT_LEFT, 100, fs, Pal.text(s))
+		draw_string(bold, Vector2(x + 120, y), v, HORIZONTAL_ALIGNMENT_LEFT, 50, fs, E.INK)
+		draw_string(reg, Vector2(x + 168, y), note, HORIZONTAL_ALIGNMENT_LEFT, 128, fs - 2, E.INK_FADED)
 		y += step
 	if not enemy.is_empty():
 		var through := Formulas.armor_damage(float(hero["dmg"]), float(enemy["armor"]) * (1.0 - minf(80.0, float(hero.get("pen", 0.0))) / 100.0), k)
@@ -86,7 +90,18 @@ func _val(s: String) -> String:
 		"регенерация":
 			return ("%.1f" % float(hero["regen"])).replace(".", ",")
 		"алчность":
-			return "+%d%%" % roundi(hero["greed"])
+			return "%+d%%" % roundi(hero["greed"])
+		"яд", "натиск", "казнь", "ярость", "ответный удар", "передышка", "удача", "уязвимость":
+			return "%d%%" % roundi(hero[_key_of(s)])
+		"оберег":
+			return str(roundi(hero["ward"]))
+	return ""
+
+
+func _key_of(stat: String) -> String:
+	for k in EXTRA:
+		if EXTRA[k] == stat:
+			return k
 	return ""
 
 
@@ -115,7 +130,25 @@ func _note(s: String) -> String:
 		"регенерация":
 			return "HP в секунду"
 		"алчность":
-			return "больше монет"
+			return "монет за бой" if float(hero["greed"]) >= 0.0 else "меньше монет"
+		"яд":
+			return "от удара ядом за 3 с"
+		"натиск":
+			return "к первому удару"
+		"казнь":
+			return "урон по врагу <30%"
+		"ярость":
+			return "урон при жизни <35%"
+		"ответный удар":
+			return "урона после блока"
+		"оберег":
+			return "щит в начале боя"
+		"передышка":
+			return "жизни после победы"
+		"уязвимость":
+			return "входящего урона"
+		"удача":
+			return "редкий дроп чаще"
 	return ""
 
 
@@ -129,9 +162,18 @@ func _enemy_line() -> void:
 		parts.append(["блок", "%d%%" % roundi(enemy["block"])])
 	if float(enemy["vamp"]) > 0:
 		parts.append(["вампиризм", "%d%%" % roundi(enemy["vamp"])])
+	if float(enemy.get("thorns", 0)) > 0:
+		parts.append(["шипы", str(roundi(enemy["thorns"]))])
+	if float(enemy.get("regen", 0)) > 0:
+		parts.append(["регенерация", ("%.1f" % float(enemy["regen"])).replace(".", ",")])
+	if float(enemy.get("poison", 0)) > 0:
+		parts.append(["яд", "%d%%" % roundi(enemy["poison"])])
 	var w := 62.0
 	var x := 640.0 - parts.size() * w / 2.0
+	var plate := Rect2(x - 6, 100, parts.size() * w + 8, 28)   # paper under the line: crowns and heads sit behind
+	draw_rect(plate, Color(E.PAPER_LIGHT, 0.94))
+	draw_rect(plate, E.INK, false, 1.2)
 	for p in parts:
-		Pal.stat_icon(self, p[0], Vector2(x + 10, 132), 8.0)
-		draw_string(bold, Vector2(x + 22, 139), p[1], HORIZONTAL_ALIGNMENT_LEFT, 44, 19, Pal.stat(p[0]))
+		Pal.stat_icon(self, p[0], Vector2(x + 10, 113), 8.0)
+		draw_string(bold, Vector2(x + 22, 120), p[1], HORIZONTAL_ALIGNMENT_LEFT, 44, 19, Pal.text(p[0]))
 		x += w

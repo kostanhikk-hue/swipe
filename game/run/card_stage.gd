@@ -1,6 +1,8 @@
 extends Node2D
-## M01 gym: drop card + swipe. ← sell, → equip, ↑ melt (sharpen slot).
-## Keys: A/D/W or arrows · R restart · Tab tuning · P dump · O overlay · T slow-mo ×0.25 · 1/2 presets.
+## Drop card + swipe (M01): ← sell, → equip, ↑ melt (sharpen slot). Base of the run (run/run.gd);
+## alone it is the M01 gym (scenes/gyms/swipe_gym.tscn).
+## Keys: A/D/W or arrows · Z undo a costly decision · Q other ring · R restart (gym) · Tab tuning ·
+## O overlay · T slow-mo ×0.25 · 1/2 presets.
 ## Args: --seed=N, --overlay, --demo (scripted drags for capture).
 
 const E := preload("res://scripts/engrave.gd")
@@ -13,6 +15,7 @@ const SfxNode := preload("res://views/sfx.gd")
 const TuningPanel := preload("res://debug/tuning_panel.gd")
 const HOME := Vector2(640, 400)
 const DOOR_C := Vector2(640, 280)
+const UNDO_TIME := 1.6   # s to take back a costly decision (sold a rare, equipped a worse item)
 const PRESET_B := {"threshold_x": 130.0, "fling_speed": 700.0, "max_tilt_deg": 18.0, "hitstop_ms": 90.0,
 	"shake_px": 14.0, "punch_scale": 1.35}
 
@@ -45,8 +48,11 @@ var _preset_a := {}
 var _demo := false
 var _demo_t := 0.0
 var _demo_step := 0
-var swipe_enabled := true      # the loop gym turns swipes off during fights
+var swipe_enabled := true      # the run turns swipes off during fights
 var rise_from := DOOR_C
+var undo_snap := {}            # loadout state before the last decision
+var undo_open := false         # a costly decision can still be taken back
+var gym_keys := true           # R/T/1/2/O debug keys (off in the real run)
 
 var back: Node2D
 var front: Node2D
@@ -145,6 +151,13 @@ func _on_card_done() -> void:
 
 func _refresh_card() -> void:
 	card.locked = not loadout.can_equip(item)
+	card.trade_in = 0 if card.locked else loadout.trade_in_value(item)
+	var both_rings: bool = item.get("slot", "") == "ring" and not loadout.equipped["ring1"].is_empty() and not loadout.equipped["ring2"].is_empty() \
+		and not loadout.is_locked("ring1") and not loadout.is_locked("ring2")
+	card.ring_hint = both_rings
+	if both_rings:
+		var ts := loadout.target_slot(item)
+		card.ring_name = String(loadout.equipped[ts]["name"]) + (" (1)" if ts == "ring1" else " (2)")
 	var pa := loadout.power() if card.locked else loadout.power_if_equipped(item)
 	card.show_item(item, loadout.compare(item), Pal.RARITY_NAME[int(item["rarity"])],
 		loadout.power(), pa, "" if card.locked else loadout.resonance_change(item))
@@ -152,6 +165,10 @@ func _refresh_card() -> void:
 
 func _next_card() -> void:
 	item = _pick_item()
+	_show_card()
+
+
+func _show_card() -> void:
 	_refresh_card()
 	card.visible = true
 	card.position = rise_from
@@ -174,6 +191,7 @@ func _commit(dec: int, v: Vector2) -> void:
 		sfx.play("block", 0.6)
 		_set_state(St.RETURN)
 		return
+	undo_snap = _snapshot(dec)
 	decision = dec
 	vel = v
 	react_frames = Engine.get_process_frames() - input_frame if input_frame >= 0 else -1
@@ -190,6 +208,9 @@ func _commit(dec: int, v: Vector2) -> void:
 
 func _after_hit() -> void:
 	Engine.time_scale = base_scale
+	undo_open = _costly(decision)
+	if undo_open:
+		_on_undo_open()
 	match decision:
 		Swipe.EQUIP:
 			fly_slot = loadout.target_slot(item)
@@ -278,6 +299,11 @@ func _process(delta: float) -> void:
 				fx.ink_burst(target, 60.0)
 				var dp := loadout.power() - before
 				fx.float_text(("+%d сила" if dp >= 0 else "−%d сила") % absi(roundi(dp)), target + Vector2(-90, -20), E.INK if dp >= 0 else E.CINNABAR, 30)
+				if loadout.last_refund > 0:
+					_on_sold(loadout.last_refund)
+					coin_step = maxi(1, ceili(loadout.last_refund / 5.0))
+					fx.spray_coins(target, hud.coin_anchor(), 5, rng)
+					fx.float_text("+%d за старое" % loadout.last_refund, target + Vector2(-110, 14), E.INK_FADED, 22)
 				sfx.play("equip")
 				_shake(1.0)
 				_set_state(St.GONE)
@@ -289,7 +315,11 @@ func _process(delta: float) -> void:
 				card.visible = false
 				_set_state(St.GONE)
 		St.GONE:
-			if st_t > 0.3:
+			if undo_open:
+				hud.undo_hint = clampf(1.0 - st_t / UNDO_TIME, 0.0, 1.0)
+				hud.queue_redraw()
+			if st_t > (UNDO_TIME if undo_open else 0.3):
+				_close_undo()
 				_on_card_done()
 	if swipe_enabled and state in [St.DRAG, St.RETURN, St.IDLE]:
 		_update_lean()
@@ -297,7 +327,7 @@ func _process(delta: float) -> void:
 	if shake_left > 0.0:
 		shake_left -= delta
 		var k := maxf(0.0, shake_left / maxf(0.001, tuning.shake_ms / 1000.0))
-		cam.offset = Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1)) * tuning.shake_px * shake_power * k * k
+		cam.offset = Vector2(rng.randf_range(-1, 1), rng.randf_range(-1, 1)) * tuning.shake_px * shake_power * k * k * Game.shake()
 	else:
 		cam.offset = Vector2.ZERO
 	if overlay.visible:
@@ -316,7 +346,8 @@ func _update_lean() -> void:
 	if show and dir == Swipe.EQUIP and loadout.can_equip(item):
 		panel.set_preview(slot, "→ " + str(item["name"]), loadout.power_if_equipped(item) - loadout.power())
 	elif show and dir == Swipe.MELT:
-		panel.set_preview(slot, "+1 заточка (+%d%%)" % roundi(float(loadout.econ["melt_bonus"]) * 100.0), loadout.power_if_melted(item) - loadout.power())
+		var warn := " · проклятие тоже" if loadout.is_locked(slot) else ""
+		panel.set_preview(slot, "+1 заточка (+%d%%)%s" % [roundi(float(loadout.econ["melt_bonus"]) * 100.0), warn], loadout.power_if_melted(item) - loadout.power())
 	else:
 		panel.set_preview("", "", 0.0)
 	hud.set_coins(coins_shown, loadout.sell_price(item) if show and dir == Swipe.SELL else 0)
@@ -326,19 +357,14 @@ func _update_lean() -> void:
 
 func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventKey and e.pressed and not e.echo:
-		match e.physical_keycode:
-			KEY_R:
-				get_tree().reload_current_scene()
-				return
-			KEY_O:
-				overlay.visible = not overlay.visible
-			KEY_T:
-				base_scale = 0.25 if base_scale == 1.0 else 1.0
-				Engine.time_scale = base_scale
-			KEY_1:
-				_apply_preset(_preset_a)
-			KEY_2:
-				_apply_preset(PRESET_B)
+		if e.physical_keycode in [KEY_Z, KEY_BACKSPACE] and undo_open and state == St.GONE:
+			_undo()
+			return
+		if e.physical_keycode == KEY_Q and card.ring_hint and swipe_enabled and state in [St.IDLE, St.RISE, St.RETURN]:
+			_toggle_ring()
+			return
+		if gym_keys:
+			_gym_key(e.physical_keycode)
 	var ready_state := swipe_enabled and state in [St.IDLE, St.RISE, St.RETURN]
 	if ready_state:
 		var k := tuning.exit_speed_min
@@ -358,6 +384,87 @@ func _unhandled_input(e: InputEvent) -> void:
 			_release()
 	elif e is InputEventMouseMotion and state == St.DRAG:
 		_drag_to(e.position, e.velocity)
+
+
+func _gym_key(k: int) -> void:
+	match k:
+		KEY_R:
+			get_tree().reload_current_scene()
+		KEY_O:
+			overlay.visible = not overlay.visible
+		KEY_T:
+			base_scale = 0.25 if base_scale == 1.0 else 1.0
+			Engine.time_scale = base_scale
+		KEY_1:
+			_apply_preset(_preset_a)
+		KEY_2:
+			_apply_preset(PRESET_B)
+
+
+# ------------------------------------------------------------- undo and rings
+
+## Costly = easy to regret: selling or melting a rare+ item, equipping something that lowers power.
+func _costly(dec: int) -> bool:
+	var r := int(item.get("rarity", 0))
+	match dec:
+		Swipe.SELL, Swipe.MELT:
+			return r >= 2
+		Swipe.EQUIP:
+			return loadout.power_if_equipped(item) < loadout.power() * 0.97
+	return false
+
+
+func _snapshot(dec: int) -> Dictionary:
+	return {"equipped": loadout.equipped.duplicate(), "rank": loadout.rank.duplicate(), "coins": loadout.coins,
+		"item": item, "dec": dec, "ring_pick": loadout.ring_pick}
+
+
+func _undo() -> void:
+	var snap := undo_snap
+	var gained := loadout.coins - int(snap["coins"])
+	loadout.equipped = snap["equipped"]
+	loadout.rank = snap["rank"]
+	loadout.coins = snap["coins"]
+	loadout.ring_pick = snap["ring_pick"]
+	if gained != 0:
+		_on_sold(-gained)
+	coins_shown = loadout.coins
+	hud.set_coins(coins_shown, 0)
+	fx.coins.clear()
+	_close_undo()
+	panel.queue_redraw()
+	item = snap["item"]
+	_refresh_card()
+	card.visible = true
+	card.rotation = 0.0
+	card.scale = Vector2.ONE * 0.6
+	rise_from = HOME + Vector2(0, 40)
+	_set_state(St.RISE)
+	fx.float_text("отменено", HOME + Vector2(0, -280), E.INK, 34)
+	sfx.play("swish", 0.7)
+	_on_undo()
+
+
+func _on_undo() -> void:
+	pass
+
+
+func _on_undo_open() -> void:
+	pass
+
+
+func _close_undo() -> void:
+	undo_open = false
+	hud.undo_hint = 0.0
+	hud.queue_redraw()
+
+
+func _toggle_ring() -> void:
+	var cur := loadout.target_slot(item)
+	loadout.ring_pick = "ring2" if cur == "ring1" else "ring1"
+	_refresh_card()
+	panel.punch(loadout.ring_pick)
+	sfx.play("grab", 1.2, -6.0)
 
 
 func _hit_card(p: Vector2) -> bool:

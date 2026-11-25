@@ -97,7 +97,8 @@ func _resonance(x: float, y: float, rng: RandomNumberGenerator) -> void:
 	var reg := Fonts.regular()
 	var bold := Fonts.bold()
 	E.stroke(self, Vector2(x, y), Vector2(PANEL.end.x, y), 1.0, rng, E.INK_FADED)
-	draw_string(reg, Vector2(x + 4, y + 16), "резонанс тегов 3/5/7", HORIZONTAL_ALIGNMENT_LEFT, 200, 14, E.INK_FADED)
+	var ths := "/".join((loadout.resonance["thresholds"] as Array).map(func(v): return str(int(v))))
+	draw_string(reg, Vector2(x + 4, y + 16), "резонанс тегов " + ths, HORIZONTAL_ALIGNMENT_LEFT, 200, 14, E.INK_FADED)
 	y += 34
 	for tg in tags.slice(0, 3):
 		var n := int(counts[tg])
@@ -105,7 +106,7 @@ func _resonance(x: float, y: float, rng: RandomNumberGenerator) -> void:
 		var th: Array = loadout.resonance["thresholds"]
 		var nxt := int(th[mini(lv, th.size() - 1)])
 		var r: Dictionary = loadout.resonance["tags"].get(tg, {})
-		var col: Color = Pal.stat(r.get("stat", "")) if lv > 0 else E.INK_FADED
+		var col: Color = Pal.text(r.get("stat", "")) if lv > 0 else E.INK_FADED
 		draw_string(bold if lv > 0 else reg, Vector2(x + 4, y), "%s %d/%d" % [tg, n, nxt], HORIZONTAL_ALIGNMENT_LEFT, 110, 17, E.INK if lv > 0 else E.INK_FADED)
 		if lv > 0:
 			draw_string(bold, Vector2(x + 100, y), "+%d %s" % [roundi(float(r["v"][lv - 1])), _short(r["stat"])], HORIZONTAL_ALIGNMENT_LEFT, 106, 15, col)

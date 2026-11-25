@@ -18,6 +18,7 @@ var banner := ""
 var enemy_note := ""
 var actions: Array = []        # [{key, label, cost, ok}] — M06 spends, top centre
 var action_rects: Array = []   # filled on draw, for mouse clicks
+var undo_hint := 0.0           # 0..1 time left to take back a costly decision
 var _coin_punch := 0.0
 
 
@@ -60,10 +61,15 @@ func _draw() -> void:
 	if enemy_name != "":
 		draw_string(bold, Vector2(390, 60), enemy_name, HORIZONTAL_ALIGNMENT_CENTER, 500, 36, E.INK)
 		_bar(Rect2(490, 74, 300, 16), enemy_hp / maxf(1.0, enemy_hp_max))
-		draw_string(reg, Vector2(490, 112), "%d / %d" % [ceili(enemy_hp), roundi(enemy_hp_max)], HORIZONTAL_ALIGNMENT_CENTER, 300, 17, E.INK)
-	if enemy_note != "":
-		draw_string_outline(bold, Vector2(380, 166), enemy_note, HORIZONTAL_ALIGNMENT_CENTER, 520, 18, 6, E.PAPER_LIGHT)
-		draw_string(bold, Vector2(380, 166), enemy_note, HORIZONTAL_ALIGNMENT_CENTER, 520, 18, E.CINNABAR)
+		var hp_txt := "%d / %d" % [ceili(enemy_hp), roundi(enemy_hp_max)]
+		draw_string_outline(bold, Vector2(490, 88), hp_txt, HORIZONTAL_ALIGNMENT_CENTER, 300, 14, 4, E.PAPER_LIGHT)
+		draw_string(bold, Vector2(490, 88), hp_txt, HORIZONTAL_ALIGNMENT_CENTER, 300, 14, E.INK)
+	if enemy_note != "":   # bottom plate: away from the crown and the floating numbers
+		var w := minf(600.0, bold.get_string_size(enemy_note, HORIZONTAL_ALIGNMENT_LEFT, -1, 19).x + 40.0)
+		var nr := Rect2(640.0 - w / 2.0, 640, w, 36)
+		draw_rect(nr, Color(E.PAPER_LIGHT, 0.96))
+		draw_rect(nr, E.CINNABAR, false, 2.0)
+		draw_string(bold, nr.position + Vector2(0, 25), enemy_note, HORIZONTAL_ALIGNMENT_CENTER, w, 19, E.CINNABAR)
 	action_rects.clear()
 	if enemy_name == "" and not actions.is_empty():
 		var w := 168.0
@@ -77,7 +83,7 @@ func _draw() -> void:
 			draw_rect(r, E.INK if ok else E.INK_FADED, false, 2.0 if ok else 1.0)
 			draw_string(bold, r.position + Vector2(0, 24), "%s · %s" % [act["key"], act["label"]], HORIZONTAL_ALIGNMENT_CENTER, w, 19, E.INK if ok else E.INK_FADED)
 			if int(act["cost"]) > 0:
-				draw_string(reg, r.position + Vector2(0, 46), "%d монет" % int(act["cost"]), HORIZONTAL_ALIGNMENT_CENTER, w, 17, Pal.stat("алчность") if ok else E.INK_FADED)
+				draw_string(reg, r.position + Vector2(0, 46), "%d монет" % int(act["cost"]), HORIZONTAL_ALIGNMENT_CENTER, w, 17, Pal.text("алчность") if ok else E.INK_FADED)
 	if banner != "":
 		var parts := banner.split("\n")
 		var h := 70.0 + 34.0 * (parts.size() - 1)
@@ -88,6 +94,12 @@ func _draw() -> void:
 		draw_string(bold, Vector2(330, box.position.y + 50), parts[0], HORIZONTAL_ALIGNMENT_CENTER, 620, 40, E.CINNABAR)
 		for i in range(1, parts.size()):
 			draw_string(bold if i == 1 else reg, Vector2(330, box.position.y + 50 + 34 * i), parts[i], HORIZONTAL_ALIGNMENT_CENTER, 620, 22, E.INK)
+	if undo_hint > 0.0:
+		var ur := Rect2(490, 610, 300, 44)
+		draw_rect(ur, Color(E.PAPER_LIGHT, 0.95))
+		draw_rect(ur, E.INK, false, 2.0)
+		draw_rect(Rect2(ur.position + Vector2(4, ur.size.y - 7), Vector2((ur.size.x - 8) * undo_hint, 3)), E.CINNABAR)
+		draw_string(bold, ur.position + Vector2(0, 28), "Z — отменить решение", HORIZONTAL_ALIGNMENT_CENTER, ur.size.x, 21, E.INK)
 	if not show_hints:
 		return
 	draw_string(bold, Vector2(300, 668), "← продать  A", HORIZONTAL_ALIGNMENT_LEFT, 260, 25, E.INK)

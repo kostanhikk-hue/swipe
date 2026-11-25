@@ -31,6 +31,30 @@ static func power(dps_v: float, ehp_v: float) -> float:
 	return sqrt(maxf(0.0, dps_v) * maxf(0.0, ehp_v))
 
 
+## Build power from a hero fighter (Combat.hero_from): √(offence × defence) against a reference
+## enemy (armor 20, ~1 hit/s, ~10 s fight), so every combat stat moves it the same way it moves a fight.
+static func build_power(h: Dictionary, t: CombatTuning) -> float:
+	var ref_armor := 20.0 * (1.0 - minf(80.0, float(h["pen"])) / 100.0)
+	var cm := t.crit_mult + float(h["critdmg"]) / 100.0
+	var crit := float(h["crit"])
+	var fl: Array = h.get("flags", [])
+	if "third_crit" in fl:
+		crit = crit + (100.0 - crit) / 3.0
+	var mult := 1.0 + float(h["poison"]) / 100.0 + float(h["execute"]) / 100.0 * 0.25 + float(h["fury"]) / 100.0 * 0.2
+	var hits := maxf(1.0, float(h["speed"]) * 8.0)
+	mult += float(h["onset"]) / 100.0 / hits
+	var d := dps(float(h["dmg"]) * mult, float(h["speed"]), crit, cm) * t.armor_k / (ref_armor + t.armor_k)
+	var blocked := minf(float(h["block"]), t.block_cap) / 100.0
+	var thorns := float(h["thorns"]) + (6.0 if "thorns_grow" in fl else 0.0)   # ~3 hits taken per fight
+	d += thorns * (1.0 - blocked) + float(h["riposte"]) / 100.0 * float(h["dmg"]) * blocked
+	var hp := float(h["max_hp"]) + float(h["regen"]) * 8.0 + float(h["ward"])
+	if "overheal" in fl:
+		hp += float(h["max_hp"]) * 0.15
+	var e := ehp(hp, float(h["armor"]), float(h["block"]), t.armor_k, t.block_cap) * (1.0 + float(h["vamp"]) / 50.0)
+	e /= 1.0 + float(h["vuln"]) / 100.0
+	return power(d, e)
+
+
 ## Armor never blocks everything: damage × K / (armor + K).
 static func armor_damage(dmg: float, armor: float, k: float) -> float:
 	return dmg * k / (maxf(0.0, armor) + k)
@@ -45,5 +69,6 @@ static func reroll_cost(depth: int, uses: int, c: Dictionary) -> int:
 	return roundi(float(c["base"]) + float(c["per_depth"]) * depth + float(c["per_use"]) * uses)
 
 
+## Sharpening grows quadratically with the rank: coins can't snowball one slot forever.
 static func sharpen_cost(depth: int, rank: int, c: Dictionary) -> int:
-	return roundi(float(c["base"]) + float(c["per_rank"]) * rank + float(c["per_depth"]) * depth)
+	return roundi(float(c["base"]) + float(c["per_rank"]) * rank + float(c.get("per_rank2", 0.0)) * rank * rank + float(c["per_depth"]) * depth)

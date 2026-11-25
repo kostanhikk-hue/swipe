@@ -26,5 +26,5 @@ func _draw() -> void:
 	for i in range(lines.size() - 1, -1, -1):
 		var age := lines.size() - 1 - i
 		var col: Color = lines[i][1]
-		draw_string(reg if age > 0 else Fonts.bold(), Vector2(AREA.position.x + 8, y), lines[i][0], HORIZONTAL_ALIGNMENT_LEFT, AREA.size.x - 16, 19, Color(col, 1.0 - age * 0.15))
+		draw_string(reg if age > 0 else Fonts.bold(), Vector2(AREA.position.x + 8, y), lines[i][0], HORIZONTAL_ALIGNMENT_LEFT, AREA.size.x - 16, 19, Color(col, 1.0 - age * 0.12))
 		y -= 28

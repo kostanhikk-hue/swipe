@@ -1,17 +1,62 @@
 extends Node2D
 ## The corridor (layer "back") or the hero's hand + engraved vignette (layer "front").
-## Static: drawn once, redrawn only when `clear` changes.
+## Thousands of strokes → baked once into a texture (SubViewport) and shown as a sprite; re-baked
+## only when `layer` or `clear` changes. The inner, unbaked copy does the actual drawing.
 
 const E := preload("res://scripts/engrave.gd")
 const V := Vector2(640, 280)
 const DOOR := Rect2(565, 175, 150, 210)
 const SCREEN := Rect2(0, 0, 1280, 720)
 
-@export var layer := "back"   # back | front (hand + vignette) | hand | vignette
-var clear: Array = []   # polygons of clean paper under lettering
+@export var layer := "back":   # back | front (hand + vignette) | hand | vignette
+	set(v):
+		layer = v
+		_rebake()
+var clear: Array = []:   # polygons of clean paper under lettering
+	set(v):
+		clear = v
+		_rebake()
+var baked := true
+var _vp: SubViewport
+var _inner: Node2D
+
+
+func _ready() -> void:
+	if not baked:
+		return
+	_vp = SubViewport.new()
+	_vp.size = Vector2i(SCREEN.size)
+	_vp.transparent_bg = true
+	_vp.disable_3d = true
+	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	_inner = (get_script() as Script).new()
+	_inner.baked = false
+	_inner.layer = layer
+	_inner.clear = clear
+	_vp.add_child(_inner)
+	add_child(_vp)
+	var spr := Sprite2D.new()
+	spr.centered = false
+	spr.texture = _vp.get_texture()
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_PREMULT_ALPHA   # transparent 2D viewports are premultiplied
+	spr.material = mat
+	add_child(spr)
+
+
+func _rebake() -> void:
+	if _inner:
+		_inner.layer = layer
+		_inner.clear = clear
+		_inner.queue_redraw()
+		_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	elif not baked:
+		queue_redraw()
 
 
 func _draw() -> void:
+	if baked:
+		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1489 if layer == "back" else 77
 	if layer == "back":

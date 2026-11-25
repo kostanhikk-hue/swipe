@@ -1,5 +1,11 @@
 {
-  "sell_base": [6, 14, 30, 70],
-  "sell_per_ilvl": 0.1,
-  "melt_bonus": 0.1
+ "sell_base": [
+  6,
+  14,
+  30,
+  70
+ ],
+ "sell_per_ilvl": 0.06,
+ "melt_bonus": 0.1,
+ "trade_in": 0.4
 }

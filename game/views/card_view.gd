@@ -14,6 +14,9 @@ var melt_line := ""
 var stamp_dir := 0
 var stamp_p := 0.0
 var locked := false   # M05: target slot holds a cursed relic — can't equip
+var trade_in := 0     # coins the replaced item brings
+var ring_hint := false   # both rings worn: Q switches which one is replaced
+var ring_name := ""
 
 
 func show_item(it: Dictionary, rows_: Array, rname: String, pb: float, pa: float, melt: String) -> void:
@@ -60,34 +63,55 @@ func _draw() -> void:
 	var x0 := r.position.x
 	draw_string(bold, Vector2(x0, -84), item["name"], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 31, Pal.RARITY_TEXT[rr])
 	var tags: Array = item.get("tags", [])
-	var sub := ("проклятое" if cursed else rarity_name) + (" · " + String(item["type"]).to_lower() if item.has("type") and rr > 0 else "")
+	var kind := "реликвия" if bool(item.get("unique", false)) else String(item.get("type", "")).to_lower()
+	var sub := ("проклятое" if cursed else rarity_name) + (" · " + kind if item.has("type") and rr > 0 else "")
 	draw_string(bold, Vector2(x0, -60), sub, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 18, E.CINNABAR if cursed else Pal.RARITY_TEXT[rr])
 	if not tags.is_empty():
 		draw_string(reg, Vector2(x0, -39), "теги: " + ", ".join(tags), HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 17, E.INK_FADED)
 	E.stroke(self, Vector2(x0 + 28, -28), Vector2(-x0 - 28, -28), 1.4, rng)
+	# bottom notes, stacked upward from the power line so they never overlap
+	var notes := []   # [text, color]
+	if bool(item.get("unique", false)):
+		notes.append(["реликвия: " + String(item.get("effect", "")), Pal.RARITY_TEXT[3]])
+	if cursed:
+		notes.append(["проклятие: %s · надев, не снять" % item.get("curse", ""), E.CINNABAR])
+	if locked:
+		notes.append(["слот проклят: только продать или переплавить", E.CINNABAR])
+	else:
+		if melt_line != "":   # resonance change from equipping
+			notes.append(["резонанс: " + melt_line, Color("#6A1B9A")])
+		if trade_in > 0:
+			notes.append(["надеть: старое уйдёт за +%d монет" % trade_in, E.INK_FADED])
+		if ring_hint:
+			notes.append(["заменит: %s · Q — другое кольцо" % ring_name, E.INK_FADED])
+	var notes_top := r.end.y - 62.0 - notes.size() * 20.0
+	for i in notes.size():
+		draw_string(bold, Vector2(x0 + 14, notes_top + 14 + i * 20), notes[i][0], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 28, 15, notes[i][1])
 	var y := -6.0
-	for row in rows.slice(0, 9):
+	var max_rows := maxi(1, int((notes_top - y) / 22.0) + 1)
+	for row in rows.slice(0, max_rows):
 		var b = row[1]
 		var a = row[2]
 		Pal.stat_icon(self, row[0], Vector2(x0 + 34, y - 6), 7.5)
-		draw_string(bold, Vector2(x0 + 48, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, 112, 18, Pal.stat(row[0]))
-		draw_string(bold, Vector2(x0 + 150, y), "%s → %s" % [_fmt(row[0], b), _fmt(row[0], a)], HORIZONTAL_ALIGNMENT_RIGHT, 110, 18, E.INK)
-		var d := (0.0 if a == null else float(a)) - (0.0 if b == null else float(b))
-		if absf(d) > 0.001:
-			draw_string(bold, Vector2(x0 + 262, y), ("+" if d > 0 else "−") + _fmt(row[0], absf(d)), HORIZONTAL_ALIGNMENT_RIGHT, 52, 18, Color("#2E7D32") if d > 0 else E.CINNABAR)
+		draw_string(bold, Vector2(x0 + 48, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, 112, 18, Pal.text(row[0]))
+		if locked:   # nothing will change: show the item's own numbers only
+			draw_string(bold, Vector2(x0 + 150, y), _fmt(row[0], a), HORIZONTAL_ALIGNMENT_RIGHT, 110, 18, E.INK_FADED)
+		else:
+			draw_string(bold, Vector2(x0 + 150, y), "%s → %s" % [_fmt(row[0], b), _fmt(row[0], a)], HORIZONTAL_ALIGNMENT_RIGHT, 110, 18, E.INK)
+			var d := (0.0 if a == null else float(a)) - (0.0 if b == null else float(b))
+			var good := d > 0 if row[0] != "уязвимость" else d < 0
+			if absf(d) > 0.001:
+				draw_string(bold, Vector2(x0 + 262, y), ("+" if d > 0 else "−") + _fmt(row[0], absf(d)), HORIZONTAL_ALIGNMENT_RIGHT, 52, 18, Color("#2E7D32") if good else E.CINNABAR)
 		y += 22.0
 	# build power: the one number that sums it up
-	if cursed:
-		draw_string(bold, Vector2(x0 + 20, r.end.y - 86), "проклятие: %s · надев, не снять" % item.get("curse", ""), HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 40, 16, E.CINNABAR)
-	if locked:
-		draw_string(bold, Vector2(x0 + 20, r.end.y - 108), "слот проклят: только продать или переплавить", HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 40, 15, E.CINNABAR)
-	if melt_line != "":   # resonance change from equipping
-		draw_string(bold, Vector2(x0 + 20, r.end.y - 66), "резонанс: " + melt_line, HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 40, 16, Color("#7B1FA2"))
-	var dp := power_after - power_before
+	var dp := float(roundi(power_after) - roundi(power_before))   # the shown numbers must add up
 	E.stroke(self, Vector2(x0 + 28, r.end.y - 52), Vector2(-x0 - 28, r.end.y - 52), 1.0, rng)
 	draw_string(reg, Vector2(x0 + 30, r.end.y - 26), "сила", HORIZONTAL_ALIGNMENT_LEFT, 80, 21, E.INK)
-	draw_string(bold, Vector2(x0 + 80, r.end.y - 26), "%d → %d" % [roundi(power_before), roundi(power_after)], HORIZONTAL_ALIGNMENT_RIGHT, 160, 23, E.INK)
-	draw_string(bold, Vector2(x0 + 244, r.end.y - 26), ("+%d" if dp >= 0 else "−%d") % absi(roundi(dp)), HORIZONTAL_ALIGNMENT_RIGHT, 50, 23, Color("#2E7D32") if dp >= 0 else E.CINNABAR)
+	if locked:
+		draw_string(bold, Vector2(x0 + 80, r.end.y - 26), "%d · не изменится" % roundi(power_before), HORIZONTAL_ALIGNMENT_RIGHT, 214, 21, E.INK_FADED)
+	else:
+		draw_string(bold, Vector2(x0 + 80, r.end.y - 26), "%d → %d" % [roundi(power_before), roundi(power_after)], HORIZONTAL_ALIGNMENT_RIGHT, 160, 23, E.INK)
+		draw_string(bold, Vector2(x0 + 244, r.end.y - 26), ("+%d" if dp >= 0 else "−%d") % absi(roundi(dp)), HORIZONTAL_ALIGNMENT_RIGHT, 50, 23, Color("#2E7D32") if dp >= 0 else E.CINNABAR)
 	if stamp_dir != 0 and stamp_p > 0.05:
 		_stamp(STAMPS.get(stamp_dir, ""), stamp_p)
 
