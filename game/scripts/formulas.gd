@@ -34,6 +34,13 @@ static func power(dps_v: float, ehp_v: float) -> float:
 ## Build power from a hero fighter (Combat.hero_from): √(offence × defence) against a reference
 ## enemy (armor 20, ~1 hit/s, ~10 s fight), so every combat stat moves it the same way it moves a fight.
 static func build_power(h: Dictionary, t: CombatTuning) -> float:
+	var p := build_parts(h, t)
+	return power(p.x, p.y)
+
+
+## (attack, defence): attack — damage per second vs the reference enemy (armor 20) with crits,
+## poison, thorns…; defence — raw damage the hero can take (HP + regen + ward, armor, block, lifesteal).
+static func build_parts(h: Dictionary, t: CombatTuning) -> Vector2:
 	var ref_armor := 20.0 * (1.0 - minf(80.0, float(h["pen"])) / 100.0)
 	var cm := t.crit_mult + float(h["critdmg"]) / 100.0
 	var crit := float(h["crit"])
@@ -52,7 +59,7 @@ static func build_power(h: Dictionary, t: CombatTuning) -> float:
 		hp += float(h["max_hp"]) * 0.15
 	var e := ehp(hp, float(h["armor"]), float(h["block"]), t.armor_k, t.block_cap) * (1.0 + float(h["vamp"]) / 50.0)
 	e /= 1.0 + float(h["vuln"]) / 100.0
-	return power(d, e)
+	return Vector2(d, e)
 
 
 ## Armor never blocks everything: damage × K / (armor + K).

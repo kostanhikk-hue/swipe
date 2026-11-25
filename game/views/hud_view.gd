@@ -35,7 +35,7 @@ func set_coins(c: int, ghost: int) -> void:
 
 
 func coin_anchor() -> Vector2:
-	return Vector2(190, 60)
+	return Vector2(175, 60)
 
 
 func _process(delta: float) -> void:
@@ -49,17 +49,21 @@ func _draw() -> void:
 	var bold := Fonts.bold()
 	var k := 1.0 + 0.45 * _coin_punch * _coin_punch
 	var a := coin_anchor()
-	draw_string(reg, Vector2(48, 68), "монеты", HORIZONTAL_ALIGNMENT_LEFT, 120, 28, E.INK)
+	E.sheet(self, Rect2(22, 26, 338, 80))
+	E.sheet(self, Rect2(996, 26, 262, 76))
+	draw_string(reg, Vector2(48, 68), "монеты", HORIZONTAL_ALIGNMENT_LEFT, 120, 26, E.INK)
 	draw_set_transform(a * (1.0 - k), 0.0, Vector2.ONE * k)
-	draw_string(bold, Vector2(150, 68), str(coins), HORIZONTAL_ALIGNMENT_LEFT, 120, 30, E.INK)
+	draw_string(bold, Vector2(150, 70), str(coins), HORIZONTAL_ALIGNMENT_LEFT, 120, 32, Pal.text("алчность"))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if coin_ghost > 0:
 		draw_string(bold, Vector2(225, 68), "+%d" % coin_ghost, HORIZONTAL_ALIGNMENT_LEFT, 100, 26, E.INK_FADED)
-	draw_string(reg, Vector2(48, 96), "глубина %d · рекорд %d" % [depth, best], HORIZONTAL_ALIGNMENT_LEFT, 360, 21, E.INK)
-	draw_string(bold, Vector2(932, 66), "жизнь %d / %d" % [ceili(hp), roundi(hp_max)], HORIZONTAL_ALIGNMENT_RIGHT, 300, 26, E.INK)
-	_bar(Rect2(942, 78, 288, 14), hp / maxf(1.0, hp_max))
+	draw_string(reg, Vector2(48, 96), "глубина %d · рекорд %d" % [depth, best], HORIZONTAL_ALIGNMENT_LEFT, 300, 19, E.INK_FADED)
+	draw_string(reg, Vector2(1016, 60), "жизнь", HORIZONTAL_ALIGNMENT_LEFT, 100, 21, E.INK)
+	draw_string(bold, Vector2(1060, 62), "%d / %d" % [ceili(hp), roundi(hp_max)], HORIZONTAL_ALIGNMENT_RIGHT, 178, 25, Pal.text("жизнь") if hp > hp_max * 0.35 else E.CINNABAR)
+	_bar(Rect2(1018, 74, 218, 16), hp / maxf(1.0, hp_max))
 	if enemy_name != "":
-		draw_string(bold, Vector2(390, 60), enemy_name, HORIZONTAL_ALIGNMENT_CENTER, 500, 36, E.INK)
+		draw_string_outline(Fonts.title(), Vector2(390, 60), enemy_name, HORIZONTAL_ALIGNMENT_CENTER, 500, 36, 8, E.PAPER_LIGHT)
+		draw_string(Fonts.title(), Vector2(390, 60), enemy_name, HORIZONTAL_ALIGNMENT_CENTER, 500, 36, E.INK)
 		_bar(Rect2(490, 74, 300, 16), enemy_hp / maxf(1.0, enemy_hp_max))
 		var hp_txt := "%d / %d" % [ceili(enemy_hp), roundi(enemy_hp_max)]
 		draw_string_outline(bold, Vector2(490, 88), hp_txt, HORIZONTAL_ALIGNMENT_CENTER, 300, 14, 4, E.PAPER_LIGHT)
@@ -91,7 +95,7 @@ func _draw() -> void:
 		draw_rect(box, Color(E.PAPER_LIGHT, 0.96))
 		draw_rect(box, E.INK, false, 4.0)
 		draw_rect(box.grow(-8), E.INK, false, 1.2)
-		draw_string(bold, Vector2(330, box.position.y + 50), parts[0], HORIZONTAL_ALIGNMENT_CENTER, 620, 40, E.CINNABAR)
+		draw_string(Fonts.title(), Vector2(330, box.position.y + 50), parts[0], HORIZONTAL_ALIGNMENT_CENTER, 620, 42, E.CINNABAR)
 		for i in range(1, parts.size()):
 			draw_string(bold if i == 1 else reg, Vector2(330, box.position.y + 50 + 34 * i), parts[i], HORIZONTAL_ALIGNMENT_CENTER, 620, 22, E.INK)
 	if undo_hint > 0.0:
@@ -102,8 +106,10 @@ func _draw() -> void:
 		draw_string(bold, ur.position + Vector2(0, 28), "Z — отменить решение", HORIZONTAL_ALIGNMENT_CENTER, ur.size.x, 21, E.INK)
 	if not show_hints:
 		return
-	draw_string(bold, Vector2(300, 668), "← продать  A", HORIZONTAL_ALIGNMENT_LEFT, 260, 25, E.INK)
-	draw_string(bold, Vector2(780, 668), "D  надеть →", HORIZONTAL_ALIGNMENT_RIGHT, 220, 25, E.INK)
+	draw_string_outline(bold, Vector2(380, 692), "← продать  A", HORIZONTAL_ALIGNMENT_LEFT, 260, 24, 6, E.PAPER_LIGHT)
+	draw_string(bold, Vector2(380, 692), "← продать  A", HORIZONTAL_ALIGNMENT_LEFT, 260, 24, E.INK)
+	draw_string_outline(bold, Vector2(740, 692), "D  надеть →", HORIZONTAL_ALIGNMENT_RIGHT, 240, 24, 6, E.PAPER_LIGHT)
+	draw_string(bold, Vector2(740, 692), "D  надеть →", HORIZONTAL_ALIGNMENT_RIGHT, 240, 24, E.INK)
 	if melt_on:
 		draw_string(bold, Vector2(440, 128), "↑ переплавить  W", HORIZONTAL_ALIGNMENT_CENTER, 400, 23, E.INK)
 

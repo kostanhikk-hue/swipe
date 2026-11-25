@@ -160,7 +160,8 @@ func _refresh_card() -> void:
 		card.ring_name = String(loadout.equipped[ts]["name"]) + (" (1)" if ts == "ring1" else " (2)")
 	var pa := loadout.power() if card.locked else loadout.power_if_equipped(item)
 	card.show_item(item, loadout.compare(item), Pal.RARITY_NAME[int(item["rarity"])],
-		loadout.power(), pa, "" if card.locked else loadout.resonance_change(item))
+		loadout.power(), pa, "" if card.locked else loadout.resonance_change(item),
+		[loadout.parts(), loadout.parts() if card.locked else loadout.parts_if_equipped(item)])
 
 
 func _next_card() -> void:
@@ -344,10 +345,10 @@ func _update_lean() -> void:
 	var show := tuning.preview > 0.5 and p > 0.15
 	var slot := loadout.target_slot(item)
 	if show and dir == Swipe.EQUIP and loadout.can_equip(item):
-		panel.set_preview(slot, "→ " + str(item["name"]), loadout.power_if_equipped(item) - loadout.power())
+		panel.set_preview(slot, "%s → %s" % [BuildPanel.SLOT_NAMES[slot], item["name"]], loadout.power_if_equipped(item) - loadout.power())
 	elif show and dir == Swipe.MELT:
 		var warn := " · проклятие тоже" if loadout.is_locked(slot) else ""
-		panel.set_preview(slot, "+1 заточка (+%d%%)%s" % [roundi(float(loadout.econ["melt_bonus"]) * 100.0), warn], loadout.power_if_melted(item) - loadout.power())
+		panel.set_preview(slot, "%s: +1 заточка (+%d%%)%s" % [BuildPanel.SLOT_NAMES[slot], roundi(float(loadout.econ["melt_bonus"]) * 100.0), warn], loadout.power_if_melted(item) - loadout.power())
 	else:
 		panel.set_preview("", "", 0.0)
 	hud.set_coins(coins_shown, loadout.sell_price(item) if show and dir == Swipe.SELL else 0)

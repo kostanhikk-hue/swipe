@@ -17,9 +17,11 @@ var locked := false   # M05: target slot holds a cursed relic — can't equip
 var trade_in := 0     # coins the replaced item brings
 var ring_hint := false   # both rings worn: Q switches which one is replaced
 var ring_name := ""
+var ad: Array = []     # [Vector2(attack, defence) now, … with the item]
 
 
-func show_item(it: Dictionary, rows_: Array, rname: String, pb: float, pa: float, melt: String) -> void:
+func show_item(it: Dictionary, rows_: Array, rname: String, pb: float, pa: float, melt: String, ad_: Array = []) -> void:
+	ad = ad_
 	item = it
 	rows = rows_
 	rarity_name = rname
@@ -61,7 +63,7 @@ func _draw() -> void:
 	var reg := Fonts.regular()
 	var bold := Fonts.bold()
 	var x0 := r.position.x
-	draw_string(bold, Vector2(x0, -84), item["name"], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 31, Pal.RARITY_TEXT[rr])
+	draw_string(Fonts.title(), Vector2(x0, -84), item["name"], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x, 32, Pal.RARITY_TEXT[rr])
 	var tags: Array = item.get("tags", [])
 	var kind := "реликвия" if bool(item.get("unique", false)) else String(item.get("type", "")).to_lower()
 	var sub := ("проклятое" if cursed else rarity_name) + (" · " + kind if item.has("type") and rr > 0 else "")
@@ -84,16 +86,29 @@ func _draw() -> void:
 			notes.append(["надеть: старое уйдёт за +%d монет" % trade_in, E.INK_FADED])
 		if ring_hint:
 			notes.append(["заменит: %s · Q — другое кольцо" % ring_name, E.INK_FADED])
-	var notes_top := r.end.y - 62.0 - notes.size() * 20.0
+	var has_ad := ad.size() == 2 and not locked
+	var notes_top := r.end.y - 62.0 - notes.size() * 20.0 - (24.0 if has_ad else 0.0)
 	for i in notes.size():
-		draw_string(bold, Vector2(x0 + 14, notes_top + 14 + i * 20), notes[i][0], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 28, 15, notes[i][1])
+		draw_string(bold, Vector2(x0 + 14, notes_top + 14 + i * 20), notes[i][0], HORIZONTAL_ALIGNMENT_CENTER, SIZE.x - 28, 14, notes[i][1])
+	if has_ad:   # why "сила" moves: the attack and defence halves in percent
+		var a0: Vector2 = ad[0]
+		var a1: Vector2 = ad[1]
+		var ya := r.end.y - 62.0
+		var halves := [["атака", a0.x, a1.x, Pal.text("урон")], ["защита", a0.y, a1.y, Pal.text("броня")]]
+		for i in 2:
+			var hv: Array = halves[i]
+			var pct := 0.0 if float(hv[1]) <= 0.01 else (float(hv[2]) / float(hv[1]) - 1.0) * 100.0
+			var hx := x0 + 22 + i * (SIZE.x - 44) / 2.0
+			draw_string(reg, Vector2(hx, ya), hv[0], HORIZONTAL_ALIGNMENT_LEFT, 70, 16, hv[3])
+			var txt := "±0%" if absf(pct) < 0.5 else "%+d%%" % roundi(pct)
+			draw_string(bold, Vector2(hx + 62, ya), txt, HORIZONTAL_ALIGNMENT_LEFT, 80, 17, E.INK_FADED if absf(pct) < 0.5 else (Color("#2E7D32") if pct > 0 else E.CINNABAR))
 	var y := -6.0
 	var max_rows := maxi(1, int((notes_top - y) / 22.0) + 1)
 	for row in rows.slice(0, max_rows):
 		var b = row[1]
 		var a = row[2]
 		Pal.stat_icon(self, row[0], Vector2(x0 + 34, y - 6), 7.5)
-		draw_string(bold, Vector2(x0 + 48, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, 112, 18, Pal.text(row[0]))
+		draw_string(reg, Vector2(x0 + 48, y), row[0], HORIZONTAL_ALIGNMENT_LEFT, 112, 17, Pal.text(row[0]))
 		if locked:   # nothing will change: show the item's own numbers only
 			draw_string(bold, Vector2(x0 + 150, y), _fmt(row[0], a), HORIZONTAL_ALIGNMENT_RIGHT, 110, 18, E.INK_FADED)
 		else:

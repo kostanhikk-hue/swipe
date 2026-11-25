@@ -85,7 +85,7 @@ func _draw_overlay() -> void:
 	var o := overlay
 	var bold := Fonts.bold()
 	var reg := Fonts.regular()
-	o.draw_string(bold, Vector2(300, 150), "РЕЛИКВАРИЙ", HORIZONTAL_ALIGNMENT_CENTER, 680, 92, E.INK)
+	o.draw_string(Fonts.title(), Vector2(300, 150), "РЕЛИКВАРИЙ", HORIZONTAL_ALIGNMENT_CENTER, 680, 92, E.INK)
 	# a parchment plate under the subtitle: the dark doorway is right behind it
 	var plate := Rect2(400, 168, 480, 76)
 	o.draw_rect(plate, Color(E.PAPER_LIGHT, 0.96))

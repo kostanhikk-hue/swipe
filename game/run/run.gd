@@ -2,12 +2,13 @@ extends "res://run/card_stage.gd"
 ## The run: enemy rises from the doorway → real-time auto-battle → drop card → next enemy.
 ## Rules (enemies, rewards, drops, prices, vows) live in systems/run_rules.gd, shared with the
 ## balance simulator. Esc — pause (give up → souls are kept). Debug args: --depth=N, --seed=N,
-## --demo, --cursed, --relic, --foe=<enemy id> (every regular enemy is this type).
+## --demo, --cursed, --relic, --foe=<enemy id> (every regular enemy is this type), --hover=x,y.
 
 const EnemyView := preload("res://views/enemy_view.gd")
 const CombatLog := preload("res://views/combat_log.gd")
 const StatSheet := preload("res://views/stat_sheet.gd")
 const TipView := preload("res://views/tip_view.gd")
+const TooltipView := preload("res://views/tooltip_view.gd")
 const ENEMY_C := Vector2(640, 400)
 
 var ct: CombatTuning
@@ -44,6 +45,7 @@ var junk := false
 var run := {"kills": 0, "bosses": 0, "coins": 0, "killer": "", "relics": 0}
 var onboarding := {}
 var tip: Node2D
+var tooltip: Node2D
 var drops_seen := 0
 var paused := false
 
@@ -80,12 +82,15 @@ func _start() -> void:
 	hand.layer = "hand"
 	add_child(hand)
 	move_child(hand, enemy_v.get_index() + 1)
-	log_v = CombatLog.new()
-	add_child(log_v)
-	move_child(log_v, hud.get_index() + 1)
 	sheet = StatSheet.new()
 	add_child(sheet)
-	move_child(sheet, log_v.get_index() + 1)
+	move_child(sheet, hud.get_index() + 1)
+	log_v = CombatLog.new()
+	add_child(log_v)
+	move_child(log_v, sheet.get_index() + 1)
+	tooltip = TooltipView.new()
+	add_child(tooltip)
+	tooltip.visible = false
 	shop_overlay = Node2D.new()
 	add_child(shop_overlay)
 	move_child(shop_overlay, fx.get_index())
@@ -201,6 +206,24 @@ func _spawn_enemy() -> void:
 	ph_t = 0.0
 
 
+## Tooltips: the doll, the hero sheet, the enemy strip. Hidden while a card is being dragged.
+func _hover() -> void:
+	var p := get_viewport().get_mouse_position()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--hover="):   # debug/capture: pretend the mouse is here
+			p = Vector2(float(a.get_slice("=", 1).get_slice(",", 0)), float(a.get_slice("=", 1).get_slice(",", 1)))
+	var d := {}
+	if state != St.DRAG and not tip.visible:
+		d = panel.hover_at(p)
+		if d.is_empty():
+			d = sheet.hover_at(p)
+	if d.is_empty():
+		tooltip.hide_tip()
+	else:
+		tooltip.show_at(p, d)
+	move_child(tooltip, get_child_count() - 1)
+
+
 func _seen(id: String) -> void:
 	if id not in save["seen"]:
 		save["seen"].append(id)
@@ -222,6 +245,7 @@ func _process(delta: float) -> void:
 	_hand_k = maxf(0.0, _hand_k - delta * 7.0)
 	hand.scale = Vector2.ONE * 0.8
 	hand.position = Vector2(0, 144) + Vector2(60, -50) * sin(_hand_k * PI)
+	_hover()
 	var fighting := phase in ["rise", "fight"]
 	var hf: Dictionary = combat.f["hero"] if phase == "fight" else _hero_fighter(hero_hp)
 	sheet.set_data(hf, cur_enemy if fighting else {}, ct)
@@ -279,9 +303,15 @@ func _on_event(ev: Dictionary) -> void:
 				if crit:
 					fx.ink_burst(ENEMY_C + Vector2(0, -80), 110.0, E.CINNABAR)
 				log_v.add(("КРИТ −%d" if crit else "удар −%d") % amt, E.CINNABAR if crit else E.INK)
+			elif amt < 1:   # the whole hit went into the ward
+				enemy_v.lunge()
+				fx.float_text("в щит", Vector2(1080, 150), Pal.text("оберег"), 30)
+				log_v.add("%s бьёт — поглотил оберег" % foe, Pal.text("оберег"))
+				sfx.play("block", 1.2)
+				return
 			else:
 				enemy_v.lunge()
-				fx.float_text("−%d" % amt, Vector2(1000, 150), E.CINNABAR, 56 if crit else 42)
+				fx.float_text("−%d" % amt, Vector2(1080, 150), E.CINNABAR, 56 if crit else 42)
 				fx.ink_burst(Vector2(640, 690), 160.0, E.CINNABAR)
 				log_v.add(("%s: КРИТ −%d" if crit else "%s бьёт −%d") % [foe, amt], E.CINNABAR)
 			sfx.play("crit" if crit else ("hit" if by_hero else "hurt"))
@@ -611,8 +641,8 @@ func _open_shop() -> void:
 		add_child(cv)
 		move_child(cv, card.get_index())
 		cv.show_item(it, loadout.compare(it), Pal.RARITY_NAME[int(it["rarity"])], loadout.power(), loadout.power_if_equipped(it), loadout.resonance_change(it))
-		cv.position = Vector2(400 + i * 240, 410)
-		cv.scale = Vector2.ONE * 0.66
+		cv.position = Vector2(475 + i * 205, 420)   # between the hero sheet and the doll
+		cv.scale = Vector2.ONE * 0.58
 		shop_cards.append(cv)
 	hud.enemy_name = ""
 	hud.banner = ""
@@ -663,10 +693,10 @@ func _draw_shop_overlay() -> void:
 	for i in shop_items.size():
 		var p: Vector2 = shop_cards[i].position
 		var ok := loadout.coins >= int(shop_items[i]["price"])
-		o.draw_string_outline(bold, p + Vector2(-110, -180), "%d монет" % int(shop_items[i]["price"]), HORIZONTAL_ALIGNMENT_CENTER, 220, 26, 6, E.PAPER_LIGHT)
-		o.draw_string(bold, p + Vector2(-110, -180), "%d монет" % int(shop_items[i]["price"]), HORIZONTAL_ALIGNMENT_CENTER, 220, 26, Pal.text("алчность") if ok else E.CINNABAR)
-	o.draw_string_outline(bold, Vector2(340, 612), "торговец · щёлкните карту, чтобы купить", HORIZONTAL_ALIGNMENT_CENTER, 600, 22, 6, E.PAPER_LIGHT)
-	o.draw_string(bold, Vector2(340, 612), "торговец · щёлкните карту, чтобы купить", HORIZONTAL_ALIGNMENT_CENTER, 600, 22, E.INK)
+		o.draw_string_outline(bold, p + Vector2(-100, -160), "%d монет" % int(shop_items[i]["price"]), HORIZONTAL_ALIGNMENT_CENTER, 200, 24, 6, E.PAPER_LIGHT)
+		o.draw_string(bold, p + Vector2(-100, -160), "%d монет" % int(shop_items[i]["price"]), HORIZONTAL_ALIGNMENT_CENTER, 200, 24, Pal.text("алчность") if ok else E.CINNABAR)
+	o.draw_string_outline(bold, Vector2(380, 690), "торговец · щёлкните карту, чтобы купить · Space — уйти", HORIZONTAL_ALIGNMENT_CENTER, 600, 21, 6, E.PAPER_LIGHT)
+	o.draw_string(bold, Vector2(380, 690), "торговец · щёлкните карту, чтобы купить · Space — уйти", HORIZONTAL_ALIGNMENT_CENTER, 600, 21, E.INK)
 
 
 # ------------------------------------------------------------- pause

@@ -158,6 +158,16 @@ func power_of_stats(stats: Dictionary, fl: Array = []) -> float:
 	return Formulas.build_power(Combat.hero_from(stats, 0.0, ct, fl), ct)
 
 
+## (attack, defence) of the build now / with the item worn — the two halves of "сила".
+func parts() -> Vector2:
+	return Formulas.build_parts(Combat.hero_from(total_stats(), 0.0, ct, flags()), ct)
+
+
+func parts_if_equipped(item: Dictionary) -> Vector2:
+	var s := target_slot(item)
+	return Formulas.build_parts(Combat.hero_from(total_stats(s, item), 0.0, ct, flags(s, item)), ct)
+
+
 func power() -> float:
 	return power_of_stats(total_stats(), flags())
 

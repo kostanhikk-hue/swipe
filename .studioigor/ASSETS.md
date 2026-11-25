@@ -35,3 +35,5 @@
 |---|---|---|---|---|---|
 | Cormorant Garamond | https://github.com/google/fonts/tree/main/ofl/cormorantgaramond | OFL 1.1 | Christian Thalmann | game/art/fonts/ | в титрах |
 | GUT 9.6.1 (только тесты) | https://github.com/bitwes/Gut | MIT | bitwes | game/addons/gut | не в сборке |
+| Alegreya (шрифт) | Juan Pablo del Peral / Huerta Tipográfica | SIL OFL 1.1 | github.com/google/fonts/ofl/alegreya | game/art/fonts/Alegreya.ttf |
+| музыка menu/run/boss | процедурно (game/tools/make_music.py) | своё | — | game/audio/music/ |
