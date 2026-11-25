@@ -20,14 +20,17 @@ VERIFIED: yes
 - LSP: в открытом редакторе; без него ошибки ловятся `--import` и CAPTURE (Logger).
 
 ## Commands
-RUN: play.bat (Windows: главное меню → новый забег; сцена забега пока gyms/loop_gym)
+RUN: play.bat (Windows: главное меню → новый забег; сцена забега scenes/run.tscn)
 TEST: export PATH=$HOME/.local/bin:$PATH && cd game && godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests -gexit
 BUILD: — (шаблоны экспорта Windows поставим к первой сборке)
 CAPTURE: export PATH=$HOME/.local/bin:$PATH && cd game && xvfb-run -a -s "-screen 0 1280x720x24" godot --path . --rendering-driver opengl3 --audio-driver Dummy --resolution 1280x720 --fixed-fps 60 --script res://tools/capture.gd -- --out ../.studioigor/captures/hello --duration 4 --every 0.5 --inputs tools/inputs_hello.json
 EDITOR: edit.bat (на Windows)
-BALANCE: export PATH=$HOME/.local/bin:$PATH && cd game && godot --headless --path . -s res://tools/balance_sim.gd -- --runs=200 [--policy=melt] [--set=depth_hp:0.14]
+BALANCE: export PATH=$HOME/.local/bin:$PATH && cd game && godot --headless --path . -s res://tools/balance_sim.gd -- --runs=200 [--policy=greedy|smart] [--forge] [--set=depth_hp:0.14]
+CHECK: export PATH=$HOME/.local/bin:$PATH && cd game && godot --headless --path . -s res://tools/check_scripts.gd
+MUSIC: python3 game/tools/make_music.py (numpy + ffmpeg)
 
 ## Pitfalls
 - VM: без `--audio-driver Dummy` ALSA сыпет ошибки (безвредно).
-- VM: `godot` не в PATH по умолчанию — команды начинаются с export PATH.
+- VM: `godot` не в PATH по умолчанию — команды начинаются с export PATH. Новая сессия VM — Godot ставится заново в ~/tools (github releases 4.6.2-stable linux).
+- Отладка забега: --depth=N, --cursed, --relic, --foe=<id врага>, --demo (аргументы после `--`, capture.gd их пропускает игре).
 - После внешних правок файлов — `godot --headless --path game --import`.

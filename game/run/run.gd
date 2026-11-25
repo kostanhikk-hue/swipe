@@ -2,7 +2,7 @@ extends "res://run/card_stage.gd"
 ## The run: enemy rises from the doorway → real-time auto-battle → drop card → next enemy.
 ## Rules (enemies, rewards, drops, prices, vows) live in systems/run_rules.gd, shared with the
 ## balance simulator. Esc — pause (give up → souls are kept). Debug args: --depth=N, --seed=N,
-## --demo, --cursed, --relic.
+## --demo, --cursed, --relic, --foe=<enemy id> (every regular enemy is this type).
 
 const EnemyView := preload("res://views/enemy_view.gd")
 const CombatLog := preload("res://views/combat_log.gd")
@@ -147,6 +147,12 @@ func _hero_max() -> float:
 
 func _spawn_enemy() -> void:
 	var info := rules.enemy_for(depth, rng)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--foe=") and not info["boss"]:
+			for t in rules.enemies["types"]:
+				if t["id"] == a.get_slice("=", 1):
+					info["def"] = t
+					info["fighter"] = LoopMath.enemy_at(t, depth, ct)
 	enemy_def = info["def"]
 	cur_enemy = info["fighter"]
 	is_boss = info["boss"]
@@ -281,14 +287,18 @@ func _on_event(ev: Dictionary) -> void:
 			sfx.play("crit" if crit else ("hit" if by_hero else "hurt"))
 			_impact(ct.crit_hitstop_ms if crit else ct.hit_hitstop_ms, ct.crit_shake_px if crit else ct.hit_shake_px)
 		"block":
-			var where := Vector2(1090, 140) if not by_hero else ENEMY_C + Vector2(0, -110)
+			var where := Vector2(990, 210) if not by_hero else ENEMY_C + Vector2(0, -110)
 			fx.float_text("блок", where, E.INK, 36)
 			log_v.add("блок!" if not by_hero else "%s блокирует" % foe, E.INK_FADED)
 			sfx.play("block")
 		"riposte":
+			if amt < 1:
+				return
 			fx.float_text("ответ −%d" % amt, ENEMY_C + Vector2(0, -60) if by_hero else Vector2(1000, 175), Pal.text("ответный удар"), 34)
 			log_v.add(("ответный удар −%d" if by_hero else foe + " отвечает −%d") % amt, Pal.text("ответный удар"))
 		"thorns":
+			if amt < 1:
+				return
 			fx.float_text("шипы −%d" % amt, ENEMY_C + Vector2(0, -40) if by_hero else Vector2(1000, 170), Pal.text("шипы"), 30)
 			log_v.add(("шипы ранят: −%d" if by_hero else "шипы врага: −%d") % amt, Pal.text("шипы"))
 		"poison":
@@ -300,7 +310,7 @@ func _on_event(ev: Dictionary) -> void:
 		"heal":
 			if amt < 1:
 				return
-			fx.float_text("+%d" % amt, Vector2(1090, 150) if by_hero else ENEMY_C + Vector2(60, -150), E.INK, 30)
+			fx.float_text("+%d" % amt, Vector2(990, 185) if by_hero else ENEMY_C + Vector2(60, -150), E.INK, 30)
 			log_v.add(("вампиризм +%d" if by_hero else foe + " пьёт +%d") % amt, E.INK_FADED)
 		"shield":
 			if amt >= 1:
@@ -555,7 +565,7 @@ func _do_action(what: String) -> void:
 			loadout.coins -= rules.heal_cost(depth)
 			var add := _hero_max() * float(rules.spend["heal"]["pct"])
 			hero_hp = minf(_hero_max(), hero_hp + add)
-			fx.float_text("+%d" % roundi(add), Vector2(1080, 140), Pal.text("жизнь"), 40)
+			fx.float_text("+%d" % roundi(add), Vector2(990, 160), Pal.text("жизнь"), 40)
 			fx.ink_burst(Vector2(1080, 85), 60.0, Pal.stat("жизнь"))
 			log_v.add("лечение +%d" % roundi(add), Pal.text("жизнь"))
 			sfx.play("rise", 1.4)
@@ -662,8 +672,8 @@ func _draw_shop_overlay() -> void:
 # ------------------------------------------------------------- pause
 
 func _set_paused(on: bool) -> void:
-	paused = on
-	Engine.time_scale = 0.0 if on else base_scale
+	paused = on   # the run's logic stops (fight, card); time itself keeps going for music and effects
+	Engine.time_scale = base_scale
 	hud.banner = "Пауза\nEsc — продолжить\nM — сдаться: забег засчитан, души сохранятся" if on else ""
 	hud.queue_redraw()
 
